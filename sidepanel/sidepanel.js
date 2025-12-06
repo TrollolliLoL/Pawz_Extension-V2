@@ -75,293 +75,397 @@
             _tuningState = result.pawz_tuning;
         }
         
-        // Render Dropdown List
-        renderPresetDropdown();
-
-        // Apply Active Preset
-        applyPresetToUI(_tuningState.active_preset);
+        // Render All Cards
+        renderPresetCards();
     }
 
-    function renderPresetDropdown() {
-        const list = document.getElementById('preset-list-dropdown');
-        list.innerHTML = '';
+    function renderPresetCards() {
+        const container = document.getElementById('preset-cards-container');
+        container.innerHTML = '';
 
-        // 1. Standard Presets
+        // 1. Standard Presets (System)
         const standards = [
-            { id: 'tech_rec', name: 'Tech Rec (Défaut)' },
-            { id: 'standard', name: 'Standard (Polyvalent)' },
-            { id: 'strict', name: 'Strict (Élitiste)' }
+            { id: 'tech_rec', name: 'Tech Rec (Défaut)', system: true },
+            { id: 'standard', name: 'Standard (Polyvalent)', system: true },
+            { id: 'strict', name: 'Strict (Élitiste)', system: true }
         ];
 
         standards.forEach(p => {
-            const el = createPresetOption(p.id, p.name, false);
-            list.appendChild(el);
+            // Merge defaults values
+            const fullPreset = { ...p, values: TUNING_PRESETS[p.id] };
+            const card = createPresetCard(fullPreset);
+            container.appendChild(card);
         });
 
         // 2. Custom Presets
-        if (_tuningState.custom_presets.length > 0) {
-            const separator = document.createElement('div');
-            separator.style.cssText = "height:1px; background:#e5e7eb; margin:4px 0;";
-            list.appendChild(separator);
-
-            _tuningState.custom_presets.forEach(p => {
-                const el = createPresetOption(p.id, p.name, true);
-                list.appendChild(el);
-            });
-        }
-        
-        // 3. Unsaved (Hidden by default, shown if active)
-        const unsavedEl = createPresetOption('custom_unsaved', 'Personnalisé (Non enregistré)', false);
-        unsavedEl.id = 'opt-custom_unsaved';
-        unsavedEl.classList.add('hidden'); // Logic in applyPresetToUI will show it
-        list.appendChild(unsavedEl);
+        _tuningState.custom_presets.forEach(p => {
+            const card = createPresetCard(p);
+            container.appendChild(card);
+        });
     }
 
-    function createPresetOption(id, name, isCustom) {
-        const div = document.createElement('div');
-        div.className = 'preset-option';
-        div.dataset.value = id;
+    function createPresetCard(preset) {
+        const isActive = _tuningState.active_preset === preset.id;
+        const isSystem = !!preset.system;
         
-        // Name Area
-        const nameArea = document.createElement('div');
-        nameArea.className = 'preset-name-area';
-        nameArea.innerHTML = `<span>${isCustom ? '👤 ' : (id==='tech_rec'?'⚡ ': (id==='strict'?'🛡️ ':'⚖️ '))}</span> <span class="option-text">${name}</span>`;
-        div.appendChild(nameArea);
+        const card = document.createElement('div');
+        card.className = `preset-card ${isActive ? 'is-active' : ''}`;
+        card.dataset.id = preset.id;
 
-        // Actions (Only for Custom)
-        if (isCustom) {
-            const actions = document.createElement('div');
-            actions.className = 'preset-actions hidden'; // Shown on hover via CSS (or JS helper)
-            
-            // Edit Name
-            const editBtn = document.createElement('button');
-            editBtn.className = 'btn-preset-action edit';
-            editBtn.textContent = '✏️';
-            editBtn.title = "Renommer";
-            editBtn.onclick = (e) => {
-                e.stopPropagation();
-                renamePreset(id);
-            };
-            
-            // Delete
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn-preset-action delete';
-            delBtn.textContent = '✖';
-            delBtn.title = "Supprimer";
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
-                deletePreset(id);
-            };
+        card.innerHTML = `
+            <div class="preset-card-header">
+                <div class="preset-title-row">
+                    <span>${isSystem ? (preset.id==='tech_rec'?'⚡':(preset.id==='strict'?'🛡️':'⚖️')) : '👤'}</span>
+                    <span class="preset-name-display">${preset.name}</span>
+                </div>
+                <div class="preset-actions-right">
+                    <!-- Toggle Switch -->
+                    <div class="preset-toggle ${isActive ? 'active' : ''}" title="${isActive ? 'Désactiver' : 'Activer'}"></div>
+                    
+                    <!-- Edit Action (Custom Only) -->
+                    ${!isSystem ? `<button class="btn-edit-preset" title="Renommer">✏️</button>` : ''}
 
-            actions.appendChild(editBtn);
-            actions.appendChild(delBtn);
-            div.appendChild(actions);
+                    <!-- Delete (Custom Only) -->
+                    ${!isSystem ? `<button class="btn-delete-preset" title="Supprimer">✖</button>` : ''}
+                </div>
+            </div>
             
-            // Show actions on hover (CSS does opacity, but let's ensure display)
-            div.addEventListener('mouseenter', () => actions.classList.remove('hidden'));
-            div.addEventListener('mouseleave', () => actions.classList.add('hidden'));
-        }
+            <div class="preset-card-body">
+                <!-- Sliders Rendered Here -->
+                <div class="sliders-container"></div>
+                
+                <div class="preset-save-row">
+                    <!-- Dynamic Button Injected Here -->
+                </div>
+            </div>
+        `;
 
-        // Click Selection
-        div.addEventListener('click', () => {
-            selectPreset(id);
+        // 1. Toggle Accordion (Click Header)
+        card.querySelector('.preset-card-header').addEventListener('click', (e) => {
+            // Ignore if clicked on specific controls or input
+            if (e.target.closest('.preset-toggle') || 
+                e.target.closest('.btn-delete-preset') || 
+                e.target.closest('.btn-edit-preset') ||
+                e.target.tagName === 'INPUT') return;
+            
+            const body = card.querySelector('.preset-card-body');
+            const wasOpen = body.classList.contains('open');
+            
+            body.classList.toggle('open');
+            card.classList.toggle('open');
+            
+            if (!wasOpen) {
+                // Render Sliders if empty
+                if(body.querySelector('.sliders-container').innerHTML === '') {
+                     renderSliders(card, preset.values);
+                }
+                // Update Button State on open
+                updateCardActionButton(card, preset);
+            }
         });
 
-        return div;
+        // 2. Activate Switch
+        card.querySelector('.preset-toggle').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (isActive) return; // Already active
+            await activatePreset(preset.id);
+        });
+
+        // 3. Delete & Edit (Custom Only)
+        if (!isSystem) {
+             // Delete
+             card.querySelector('.btn-delete-preset').addEventListener('click', async (e) => {
+                 e.stopPropagation();
+                 if (confirm(`Supprimer le réglage "${preset.name}" ?`)) {
+                     await deletePreset(preset.id);
+                 }
+             });
+
+             // Rename (Inline)
+             const editBtn = card.querySelector('.btn-edit-preset');
+             const nameDisplay = card.querySelector('.preset-name-display');
+             
+             editBtn.addEventListener('click', (e) => {
+                 e.stopPropagation();
+                 const currentName = nameDisplay.textContent;
+                 // Replace with Input
+                 nameDisplay.innerHTML = `<input type="text" class="preset-rename-input" value="${currentName}">`;
+                 const input = nameDisplay.querySelector('input');
+                 input.focus();
+                 
+                 const saveName = async () => {
+                     const newName = input.value.trim();
+                     if (newName && newName !== currentName) {
+                         preset.name = newName;
+                         await chrome.storage.local.set({ pawz_tuning: _tuningState });
+                         nameDisplay.textContent = newName;
+                     } else {
+                         nameDisplay.textContent = currentName; // Revert
+                     }
+                 };
+
+                 input.addEventListener('blur', saveName);
+                 input.addEventListener('keydown', (ev) => {
+                     if (ev.key === 'Enter') { input.blur(); }
+                 });
+                 input.addEventListener('click', (ev) => ev.stopPropagation());
+             });
+        }
+
+        return card;
+    }
+    
+    function updateCardActionButton(card, preset) {
+        const container = card.querySelector('.preset-save-row');
+        const isSystem = !!preset.system;
+        const isActive = _tuningState.active_preset === preset.id;
+        
+        // Get Current Values from DOM
+        const inputs = card.querySelectorAll('input[type="range"]');
+        let currentValues = {};
+        let isDirty = false;
+        
+        if (inputs.length > 0) {
+             inputs.forEach(input => {
+                const k = input.dataset.key;
+                const v = parseInt(input.value, 10);
+                currentValues[k] = v;
+                if (preset.values[k] !== v) isDirty = true;
+             });
+        }
+
+        container.innerHTML = '';
+        
+        if (isSystem) {
+            // System: Always "Enregistrer" (Create Copy) if dirty, or hidden? 
+            // User requirement: "si c'est les meme valeur ... activé ... si changement ... sauvegarder"
+            // Wait, user requirement specifically said "custom preset". For system, let's keep "Enregistrer as Copy" if dirty?
+            // Actually let's follow the "Custom" logic strictly for custom, but what for System?
+            // "quand tu ouvre le menu deroulant d'un preset d'origine ne touche rien" -> Keep as is (Standard Save button).
+            const btn = document.createElement('button');
+            btn.className = 'btn-create btn-save-card';
+            btn.textContent = '💾 Enregistrer comme nouveau';
+            btn.onclick = () => savePresetFromCard(preset.id, card);
+            if (!isDirty && !isActive) {
+                // Optional: Show "Activate" for System too? 
+                // "d'un preset d'origine ne touche rien" -> So keep standard Save button behavior (create copy).
+                 btn.textContent = '💾 Créer une copie';
+            }
+             container.appendChild(btn);
+
+        } else {
+            // Custom Preset Logic
+            if (isDirty) {
+                // Case: Values Changed -> Show Save (Overwrite)
+                const btn = document.createElement('button');
+                btn.className = 'btn-create btn-save-card'; // Blue
+                btn.innerHTML = '💾 Sauvegarder';
+                btn.onclick = () => savePresetFromCard(preset.id, card);
+                container.appendChild(btn);
+            } else {
+                // Case: Values Same
+                if (isActive) {
+                    // Already Active -> Show Badge
+                    const badge = document.createElement('div');
+                    badge.className = 'preset-active-badge';
+                    badge.innerHTML = '✓ Activé';
+                    container.appendChild(badge);
+                } else {
+                    // Not Active -> Show Activate Button
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-main activate'; // Green styling from styles.css
+                    btn.style.padding = "6px 12px";
+                    btn.style.fontSize = "12px";
+                    btn.innerHTML = 'Activer ce profil';
+                    btn.onclick = () => activatePreset(preset.id);
+                    container.appendChild(btn);
+                }
+            }
+        }
+    }
+    
+    function renderSliders(card, values) {
+        const container = card.querySelector('.sliders-container');
+        
+        // Definition des sliders (Same specs)
+        const specs = [
+            { k:'mastery', l:'Maîtrise Technique', t:'Importance de la stack technique exacte.' },
+            { k:'degree', l:'Niveau de Diplôme', t:'Importance du parcours académique.' },
+            { k:'sector', l:'Connaissance Secteur', t:'Importance de venir du même secteur.' },
+            { k:'experience', l:'Années d\'Expérience', t:'Importance de la séniorité.' },
+            { k:'stability', l:'Stabilité Parcours', t:'Tolérance aux changements fréquents.' },
+            { k:'mission_match', l:'Corresp. Missions', t:'Similitude des tâches passées.' },
+            { k:'exigence', l:'Niveau d\'Exigence', t:'Sévérité globale de la notation.' },
+            { k:'coherence', l:'Chasse Incohérences', t:'Détection des anomalies dans le CV.' },
+            { k:'deduction', l:'Capacité Déduction', t:'Inférence des compétences implicites.' }
+        ];
+
+        let html = '';
+        specs.forEach(s => {
+             const val = values[s.k] || 5;
+             const color = val >= 8 ? '#F97316' : '#4E86F0';
+             html += `
+             <div class="slider-row-inline">
+                 <div class="slider-info">
+                     <span class="slider-label">${s.l}</span>
+                     <span class="info-tooltip" title="${s.t}">❓</span>
+                 </div>
+                 <div class="slider-wrapper">
+                     <input type="range" class="tuning-range" data-key="${s.k}" min="1" max="10" value="${val}">
+                     <span class="slider-value" style="color:${color}">${val}</span>
+                 </div>
+             </div>`;
+        });
+        
+        container.innerHTML = html;
+        
+        // Add Live Listeners
+        container.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                 const span = e.target.nextElementSibling;
+                 span.textContent = e.target.value;
+                 span.style.color = e.target.value >= 8 ? '#F97316' : '#4E86F0';
+                 
+                 // Update Button State on input change
+                 // Need preset object. We can find it via ID.
+                 const id = card.dataset.id;
+                 let preset = _tuningState.custom_presets.find(p => p.id === id);
+                 if (!preset && TUNING_PRESETS[id]) preset = { id: id, system: true, values: TUNING_PRESETS[id] };
+                 
+                 updateCardActionButton(card, preset);
+            });
+        });
     }
 
     function setupTuningListeners() {
-        // Toggle Card
+        // Main Toggle Logic
         document.getElementById('toggle-tuning-card').addEventListener('click', () => {
             const content = document.getElementById('tuning-card-content');
             const chevron = document.getElementById('tuning-chevron');
-            
             if (content.classList.contains('hidden')) {
                 content.classList.remove('hidden');
-                // content.style.display = 'block'; // Removed, handled by CSS .hidden
                 chevron.classList.add('open');
             } else {
                 content.classList.add('hidden');
-                // content.style.display = 'none';
                 chevron.classList.remove('open');
             }
         });
-
-        // --- Custom Dropdown Logic ---
-        const trigger = document.getElementById('preset-trigger');
-        const list = document.getElementById('preset-list-dropdown');
-        const saveBtn = document.getElementById('btn-save-preset');
-
-        trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            list.classList.toggle('hidden');
-            trigger.querySelector('.expand-arrow').classList.toggle('open');
-        });
-
-        // Close on outside click
-        document.addEventListener('click', (e) => {
-            if (!trigger.contains(e.target) && !list.contains(e.target)) {
-                list.classList.add('hidden');
-                trigger.querySelector('.expand-arrow').classList.remove('open');
-            }
-        });
-
-        // Slider Changes
-        document.querySelectorAll('.tuning-range').forEach(range => {
-            range.addEventListener('input', (e) => {
-                const key = e.target.id.replace('range-', '');
-                const valDisplay = document.getElementById(`val-${key}`);
-                if (valDisplay) {
-                    valDisplay.textContent = e.target.value;
-                    // Color intensity logic (Blue/Orange)
-                    if (e.target.value >= 8) valDisplay.style.color = '#F97316';
-                    else valDisplay.style.color = '#4E86F0';
-                }
-
-                // Switch to Custom Unsaved
-                if (_tuningState.active_preset !== 'custom_unsaved') {
-                    // Update State
-                    _tuningState.active_preset = 'custom_unsaved';
-                    
-                    // Update UI manually for speed
-                    document.getElementById('current-preset-name').textContent = 'Personnalisé (Non enregistré)';
-                    saveBtn.classList.remove('hidden');
-                    
-                    // Show unsaved option in list
-                    const unsavedOpt = document.getElementById('opt-custom_unsaved');
-                    if (unsavedOpt) {
-                        unsavedOpt.classList.remove('hidden');
-                        // Update selection highlight
-                        document.querySelectorAll('.preset-option').forEach(o => o.classList.remove('selected'));
-                        unsavedOpt.classList.add('selected');
-                    }
-                }
-            });
-            
-            // Save state on change (end of slide)
-            range.addEventListener('change', () => {
-                 saveTuningState(); 
-            });
-        });
-
-        // Save Preset
-        saveBtn.addEventListener('click', async () => {
-             const name = prompt("Nom de votre préréglage :", "Mon Réglage");
-             if (!name) return;
-
-             const newId = 'custom_' + Date.now();
-             const currentValues = getCurrentSliderValues();
-             
-             const newPreset = {
-                 id: newId,
-                 name: name,
-                 values: currentValues
-             };
-
-             _tuningState.custom_presets.push(newPreset);
-             
-             // Re-render
-             renderPresetDropdown();
-             
-             // Select New
-             selectPreset(newId);
+        
+        // New Preset Button
+        document.getElementById('btn-new-preset').addEventListener('click', () => {
+             createNewPreset();
         });
     }
 
-    function selectPreset(presetId) {
-        _tuningState.active_preset = presetId;
-        applyPresetToUI(presetId);
-        saveTuningState();
+    async function activatePreset(id) {
+        _tuningState.active_preset = id;
         
-        // Hide dropdown
-        document.getElementById('preset-list-dropdown').classList.add('hidden');
-        document.querySelector('#preset-trigger .expand-arrow').classList.remove('open');
-    }
-
-    async function renamePreset(id) {
-        const preset = _tuningState.custom_presets.find(p => p.id === id);
-        if (!preset) return;
-        
-        const newName = prompt("Nouveau nom :", preset.name);
-        if (newName && newName !== preset.name) {
-            preset.name = newName;
-            await saveTuningState();
-            renderPresetDropdown();
-            // Update trigger text if active
-            if (_tuningState.active_preset === id) {
-                document.getElementById('current-preset-name').textContent = `👤 ${newName}`;
-            }
+        // If it's a custom preset, we should grab its values for the "active_weights"
+        // If system, values from constant.
+        let values = {};
+        if (TUNING_PRESETS[id]) values = TUNING_PRESETS[id];
+        else {
+            const p = _tuningState.custom_presets.find(x => x.id === id);
+            if (p) values = p.values;
         }
+        
+        await chrome.storage.local.set({ 
+            pawz_tuning: _tuningState,
+            pawz_active_weights: values
+        });
+        
+        renderPresetCards(); // Re-render to update toggles
     }
 
     async function deletePreset(id) {
-        if (!confirm("Supprimer ce préréglage ?")) return;
-        
         _tuningState.custom_presets = _tuningState.custom_presets.filter(p => p.id !== id);
         
-        // If active was deleted, fallback to Tech Rec
+        // If active was deleted, fallback
         if (_tuningState.active_preset === id) {
             _tuningState.active_preset = 'tech_rec';
+            await chrome.storage.local.set({ pawz_active_weights: TUNING_PRESETS['tech_rec'] });
         }
         
-        await saveTuningState();
-        renderPresetDropdown();
-        applyPresetToUI(_tuningState.active_preset);
+        await chrome.storage.local.set({ pawz_tuning: _tuningState });
+        renderPresetCards();
     }
 
-    function applyPresetToUI(presetId) {
-        let values = {};
-        let name = "Inconnu";
-        let isCustom = false;
-        
-        if (TUNING_PRESETS[presetId]) {
-            values = TUNING_PRESETS[presetId];
-            name = (presetId==='tech_rec'?'Tech Rec (Défaut)': (presetId==='standard'?'Standard (Polyvalent)': 'Strict (Élitiste)'));
-        } else {
-            const custom = _tuningState.custom_presets.find(p => p.id === presetId);
-            if (custom) {
-                values = custom.values;
-                name = `👤 ${custom.name}`;
-                isCustom = true;
-            }
-            else if (presetId === 'custom_unsaved') {
-                if (_tuningState.last_values) values = _tuningState.last_values;
-                else values = TUNING_PRESETS['tech_rec'];
-                name = "Personnalisé (Non enregistré)";
-            }
+    async function createNewPreset() {
+        // Auto-name: "Personnalisé N"
+        let idx = 1;
+        while (_tuningState.custom_presets.some(p => p.name === `Personnalisé ${idx}`)) {
+             idx++;
         }
+        const name = `Personnalisé ${idx}`;
+        const newId = 'custom_' + Date.now();
+        
+        // Default to Tech Rec values
+        const newPreset = {
+            id: newId,
+            name: name,
+            values: { ...TUNING_PRESETS['tech_rec'] }
+        };
+        
+        _tuningState.custom_presets.push(newPreset);
+        await chrome.storage.local.set({ pawz_tuning: _tuningState });
+        renderPresetCards();
+        
+        // Optional: Auto-open the new card?
+        setTimeout(() => {
+            const card = document.querySelector(`.preset-card[data-id="${newId}"]`);
+            if (card) {
+                card.querySelector('.preset-card-header').click(); 
+                card.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
+    }
 
-        // Apply Slider Values
-        Object.keys(values).forEach(key => {
-            const range = document.getElementById(`range-${key}`);
-            const disp = document.getElementById(`val-${key}`);
-            if (range && disp) {
-                range.value = values[key];
-                disp.textContent = values[key];
-                if (values[key] >= 8) disp.style.color = '#F97316';
-                else disp.style.color = '#4E86F0';
+    async function savePresetFromCard(id, cardElement) {
+        // Gather Values
+        const inputs = cardElement.querySelectorAll('input[type="range"]');
+        const values = {};
+        inputs.forEach(input => {
+            values[input.dataset.key] = parseInt(input.value, 10);
+        });
+
+        // If System -> Create New (Copy)
+        if (TUNING_PRESETS[id]) {
+            let idx = 1;
+            while (_tuningState.custom_presets.some(p => p.name === `Personnalisé ${idx}`)) idx++;
+            const name = `Personnalisé ${idx}`;
+            
+            const newPreset = {
+                id: 'custom_' + Date.now(),
+                name: name,
+                values: values
+            };
+            _tuningState.custom_presets.push(newPreset);
+            // Auto-activate the new one? Maybe user wants that.
+            // Requirement said: "confirm that this version ... stays under its temporary name"
+            // Let's activate it.
+            _tuningState.active_preset = newPreset.id;
+            
+        } else {
+            // If Custom -> Update
+            const preset = _tuningState.custom_presets.find(p => p.id === id);
+            if (preset) {
+                preset.values = values;
+                // If this is the active one, update active_weights
+                if (_tuningState.active_preset === id) {
+                     await chrome.storage.local.set({ pawz_active_weights: values });
+                }
             }
-        });
-        
-        // Update Trigger Text
-        document.getElementById('current-preset-name').textContent = name;
-        
-        // Highlight Dropdown Option
-        document.querySelectorAll('.preset-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.dataset.value === presetId);
-        });
-        
-        // Manage "Unsaved" Option visibility
-        const unsavedOpt = document.getElementById('opt-custom_unsaved');
-        if (unsavedOpt) {
-            if (presetId === 'custom_unsaved') unsavedOpt.classList.remove('hidden');
-            else unsavedOpt.classList.add('hidden');
         }
         
-        // Hide Save Button if not custom_unsaved
-        const saveBtn = document.getElementById('btn-save-preset');
-        if (presetId === 'custom_unsaved') saveBtn.classList.remove('hidden');
-        else saveBtn.classList.add('hidden');
+        await chrome.storage.local.set({ pawz_tuning: _tuningState });
+        
+        // Feedback
+        const btn = cardElement.querySelector('.btn-save-card');
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Sauvegardé';
+        setTimeout(() => {
+            renderPresetCards(); // Re-render to show new card if created, or update state
+        }, 800);
     }
 
     function getCurrentSliderValues() {

@@ -1567,3 +1567,155 @@ body {
   z-index: 9999;
   pointer-events: none;
 }
+
+/* --- Preset Cards (AI Tuning 3.0) --- */
+.preset-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.preset-card.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.preset-card-header {
+  padding: 10px 12px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid transparent; /* Separator if open */
+}
+.preset-card-header:hover {
+  background: #f9fafb;
+}
+.preset-card.open .preset-card-header {
+  border-bottom-color: #f3f4f6;
+  background: #f9fafb;
+}
+
+.preset-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.preset-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preset-card-body {
+  display: none;
+  padding: 12px;
+  background: #fff;
+}
+.preset-card-body.open {
+  display: block;
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Toggle Switch */
+.preset-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #e5e7eb;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.preset-toggle.active {
+  background: var(--color-green);
+}
+.preset-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.preset-toggle.active::after {
+  transform: translateX(16px);
+}
+
+.btn-delete-preset {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+}
+.btn-delete-preset:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+/* Save Button inside Card */
+.preset-save-row {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Rename Input */
+.preset-rename-input {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  width: 140px;
+  outline: none;
+}
+
+/* Edit Button */
+.btn-edit-preset {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+}
+.btn-edit-preset:hover {
+  color: var(--color-primary);
+  background: #eff6ff;
+}
+
+/* Active Badge (Green) */
+.preset-active-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ecfdf5;
+  color: #059669; /* Green */
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid #d1fae5;
+  cursor: default;
+}
