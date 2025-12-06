@@ -857,8 +857,9 @@
         document.getElementById('toggle-gemini-card')?.addEventListener('click', () => {
             const content = document.getElementById('gemini-card-content');
             const chevron = document.getElementById('gemini-chevron');
-            content.classList.toggle('hidden');
-            chevron.classList.toggle('collapsed');
+            const isHidden = content.classList.toggle('hidden');
+            // Si contenu visible, chevron pointe vers le haut (open)
+            chevron.classList.toggle('open', !isHidden);
         });
 
         // --- Supprimer la clé API ---

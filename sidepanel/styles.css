@@ -522,8 +522,8 @@ body {
   display: flex;
   align-items: center;
 }
-.header-chevron.collapsed {
-  transform: rotate(-90deg);
+.header-chevron.open {
+  transform: rotate(180deg);
 }
 
 #gemini-card-content.hidden {
