@@ -644,7 +644,6 @@
         const settings = data.pawz_settings || {};
         
         const badge = document.getElementById('api-status');
-        const inputWrapper = document.querySelector('.api-input-wrapper');
         const configuredDisplay = document.getElementById('configured-key-display');
         const keyMasked = document.getElementById('key-masked');
         
@@ -654,8 +653,7 @@
                 badge.classList.add('connected');
                 badge.textContent = 'Connecté';
             }
-            // Masquer l'input, montrer la clé en vert
-            if (inputWrapper) inputWrapper.style.display = 'none';
+            // Garder l'input visible, montrer la clé EN DESSOUS
             if (configuredDisplay) {
                 configuredDisplay.classList.remove('hidden');
                 const key = settings.api_key;
@@ -668,8 +666,7 @@
                 badge.classList.remove('connected');
                 badge.textContent = 'Non connecté';
             }
-            // Montrer l'input, cacher la clé
-            if (inputWrapper) inputWrapper.style.display = 'flex';
+            // Cacher la clé
             if (configuredDisplay) configuredDisplay.classList.add('hidden');
         }
 
@@ -773,18 +770,23 @@
         document.getElementById('btn-save-api')?.addEventListener('click', async () => {
             const input = document.getElementById('api-key-input');
             const btn = document.getElementById('btn-save-api');
-            const feedbackEl = document.getElementById('api-key-feedback');
+            const errorMsg = document.getElementById('api-error-msg');
             const key = input.value.trim();
 
+            // Cacher l'erreur précédente
+            if (errorMsg) errorMsg.classList.add('hidden');
+
             if (!key) {
-                showApiFeedback('Veuillez entrer une clé API.', 'error');
+                if (errorMsg) {
+                    errorMsg.textContent = 'Veuillez entrer une clé API.';
+                    errorMsg.classList.remove('hidden');
+                }
                 return;
             }
 
             // Mode chargement
             btn.classList.add('loading');
             btn.textContent = 'Validation...';
-            feedbackEl?.classList.add('hidden');
 
             // Tester la clé
             const result = await testApiKey(key);
@@ -797,12 +799,14 @@
                 if (!settings.selected_model) settings.selected_model = 'gemini-2.0-flash';
                 await chrome.storage.local.set({ pawz_settings: settings });
                 
-                // Feedback succès
-                showApiFeedback('✓ Clé validée et enregistrée !', 'success');
                 input.value = '';
                 await loadSettings();
             } else {
-                showApiFeedback(result.error || 'Clé invalide', 'error');
+                // Afficher l'erreur
+                if (errorMsg) {
+                    errorMsg.textContent = result.error || 'Clé API invalide';
+                    errorMsg.classList.remove('hidden');
+                }
             }
 
             // Reset bouton
