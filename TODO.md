@@ -5,26 +5,6 @@ Ce document centralise les tickets pour les Agents 1 (Backend) et 2 (Frontend).
 
 ---
 
-## 🚀 PHASE 1 : FONDATIONS (LE SQUELETTE)
-
-**Objectif** : Avoir une extension qui s'installe, une base de données qui fonctionne, et une communication basique entre les composants.
-
-### 🔧 BACKEND CORE (Agent 1)
-
-- [ ] **[DB]** Implémenter `/lib/db.js` (Wrapper IndexedDB pour stocker les payloads lourds)
-- [ ] **[UTILS]** Implémenter `/lib/utils.js` (Générateur UUID, Helpers de date)
-- [ ] **[STORAGE]** Implémenter la structure de données initiale dans `chrome.storage.local` (Jobs, Candidates)
-- [ ] **[WORKER]** Configurer `/background/background.js` (Listeners d'installation et logiques de base)
-- [ ] **[MIGRATION]** Coder `/background/migration.js` (Script unique V1 -> V2)
-
-### 🎨 FRONTEND CORE (Agent 2)
-
-- [x] **[PANEL]** Adapter `/sidepanel/sidepanel.html` (Structure Master-Detail V2, nettoyage du HTML V1)
-- [x] **[STYLE]** Nettoyer `/sidepanel/styles.css` (Intégrer les variables CSS du Golden Master, supprimer CSS obsolète)
-- [x] **[LOGIC]** Implémenter `/sidepanel/sidepanel.js` (Boucle de rendu réactive `storage.onChanged`)
-- [x] **[INJECT]** Implémenter `/content/content.js` (Injection Shadow DOM de la pastille)
-- [x] **[UI]** Créer `/content/trigger.css` (Style "Golden Master" de la pastille flottante)
-
 ---
 
 ## 🧠 PHASE 2 : INTELLIGENCE (LE CERVEAU)

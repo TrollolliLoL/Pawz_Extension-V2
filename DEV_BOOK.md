@@ -5,7 +5,7 @@
 ## 📅 STATUS DU PROJET
 
 - **Date de début** : 06/12/2025
-- **Phase Actuelle** : PHASE 1 - INITIALISATION & FONDATIONS
+- **Phase Actuelle** : PHASE 2 - INTELLIGENCE & FLUX DE DONNÉES
 - **Version** : 2.0.0 (Manifest V3)
 
 ---
@@ -39,6 +39,12 @@ Ce projet respecte strictement l'architecture "Zéro Build" imposée.
 - Migration des assets V1 (styles.css, sidepanel.html) depuis le dossier `CONTEXT`.
 - Création des placeholders pour donner un cadre de travail aux Agents 1 et 2.
 - Définition du `manifest.json` strict selon Module 7.3.
+- **[Validation Phase 1]** : Side Panel fonctionnel, Pastille injectée.
+
+### [06/12/2025] Lancement Phase 2
+
+- Création du plan détaillé `PHASE_2.md`.
+- Objectif : Connecter le backend (Gemini/Queue) et le Frontend dynamique.
 
 ---
 
