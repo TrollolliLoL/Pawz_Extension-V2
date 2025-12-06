@@ -644,40 +644,57 @@
         const settings = data.pawz_settings || {};
         
         const badge = document.getElementById('api-status');
-        const formSection = document.getElementById('api-form-section');
-        const configuredSection = document.getElementById('api-configured-section');
-        const keyDisplay = document.getElementById('key-display');
-        const errorEl = document.getElementById('api-error');
-        
-        // Reset error
-        if (errorEl) {
-            errorEl.classList.add('hidden');
-            errorEl.textContent = '';
-        }
+        const apiInput = document.getElementById('api-key-input');
+        const feedbackEl = document.getElementById('api-key-feedback');
         
         if (settings.api_key) {
-            // Clé configurée - afficher la version masquée
+            // Clé configurée
             if (badge) {
                 badge.classList.add('connected');
                 badge.textContent = 'Connecté';
             }
-            if (formSection) formSection.classList.add('hidden');
-            if (configuredSection) configuredSection.classList.remove('hidden');
-            if (keyDisplay) {
-                // Masquer la clé : AIzaSy...xxxx
+            if (apiInput) {
+                // Afficher la clé masquée dans le placeholder
                 const key = settings.api_key;
                 const masked = key.substring(0, 6) + '...' + key.substring(key.length - 4);
-                keyDisplay.textContent = masked;
+                apiInput.placeholder = masked;
+                apiInput.value = '';
+            }
+            // Montrer le feedback succès permanent
+            if (feedbackEl) {
+                feedbackEl.textContent = '✓ Clé configurée';
+                feedbackEl.className = 'api-key-feedback success';
+                feedbackEl.classList.remove('hidden');
             }
         } else {
-            // Pas de clé - afficher le formulaire
+            // Pas de clé
             if (badge) {
                 badge.classList.remove('connected');
-                badge.textContent = 'Non configuré';
+                badge.textContent = 'Non connecté';
             }
-            if (formSection) formSection.classList.remove('hidden');
-            if (configuredSection) configuredSection.classList.add('hidden');
+            if (apiInput) {
+                apiInput.placeholder = 'AIzaSyD...';
+            }
+            if (feedbackEl) {
+                feedbackEl.classList.add('hidden');
+            }
         }
+
+        // Mettre à jour le modèle sélectionné
+        const selectedModel = settings.selected_model || 'gemini-2.0-flash';
+        document.querySelectorAll('.model-option').forEach(opt => {
+            const isSelected = opt.dataset.model === selectedModel;
+            opt.classList.toggle('selected', isSelected);
+            const checkIcon = opt.querySelector('.check-icon');
+            if (checkIcon) {
+                checkIcon.classList.toggle('hidden', !isSelected);
+            }
+            if (isSelected) {
+                const modelText = opt.querySelector('span').textContent;
+                const trigger = document.getElementById('current-model-name');
+                if (trigger) trigger.textContent = modelText;
+            }
+        });
     }
 
     /**
@@ -763,18 +780,18 @@
         document.getElementById('btn-save-api')?.addEventListener('click', async () => {
             const input = document.getElementById('api-key-input');
             const btn = document.getElementById('btn-save-api');
-            const errorEl = document.getElementById('api-error');
+            const feedbackEl = document.getElementById('api-key-feedback');
             const key = input.value.trim();
 
             if (!key) {
-                showApiError('Veuillez entrer une clé API.');
+                showApiFeedback('Veuillez entrer une clé API.', 'error');
                 return;
             }
 
             // Mode chargement
             btn.classList.add('loading');
             btn.textContent = 'Validation...';
-            errorEl.classList.add('hidden');
+            feedbackEl?.classList.add('hidden');
 
             // Tester la clé
             const result = await testApiKey(key);
@@ -784,16 +801,15 @@
                 const data = await chrome.storage.local.get('pawz_settings');
                 const settings = data.pawz_settings || {};
                 settings.api_key = key;
+                if (!settings.selected_model) settings.selected_model = 'gemini-2.0-flash';
                 await chrome.storage.local.set({ pawz_settings: settings });
                 
-                // Vider l'input et rafraîchir l'affichage
+                // Feedback succès
+                showApiFeedback('✓ Clé validée et enregistrée !', 'success');
                 input.value = '';
                 await loadSettings();
-                
-                console.log('[Settings] Clé API validée et enregistrée');
             } else {
-                // Afficher l'erreur
-                showApiError(result.error || 'Clé invalide');
+                showApiFeedback(result.error || 'Clé invalide', 'error');
             }
 
             // Reset bouton
@@ -801,34 +817,52 @@
             btn.textContent = 'Valider';
         });
 
-        // --- Bouton SUPPRIMER ---
-        document.getElementById('btn-remove-api')?.addEventListener('click', async () => {
-            if (!confirm('Supprimer la clé API ?')) return;
-            await chrome.storage.local.set({ pawz_settings: {} });
-            await loadSettings();
+        // --- Toggle Modèle ---
+        document.getElementById('model-trigger')?.addEventListener('click', () => {
+            const dropdown = document.getElementById('model-list-dropdown');
+            const arrow = document.querySelector('.expand-arrow');
+            dropdown.classList.toggle('hidden');
+            arrow.classList.toggle('open');
         });
 
-        // Toggle des cartes dépliables
-        document.getElementById('toggle-api-card')?.addEventListener('click', () => {
-            const content = document.getElementById('api-card-content');
-            const chevron = document.getElementById('api-chevron');
-            content.classList.toggle('hidden');
-            chevron.classList.toggle('open');
-        });
+        // --- Sélection Modèle ---
+        document.querySelectorAll('.model-option').forEach(option => {
+            option.addEventListener('click', async () => {
+                const model = option.dataset.model;
+                
+                // Mettre à jour le storage
+                const data = await chrome.storage.local.get('pawz_settings');
+                const settings = data.pawz_settings || {};
+                settings.selected_model = model;
+                await chrome.storage.local.set({ pawz_settings: settings });
 
-        document.getElementById('toggle-about-card')?.addEventListener('click', () => {
-            const content = document.getElementById('about-card-content');
-            const chevron = document.getElementById('about-chevron');
-            content.classList.toggle('hidden');
-            chevron.classList.toggle('open');
+                // Mettre à jour l'UI
+                document.querySelectorAll('.model-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                    opt.querySelector('.check-icon')?.classList.add('hidden');
+                });
+                option.classList.add('selected');
+                option.querySelector('.check-icon')?.classList.remove('hidden');
+
+                // Mettre à jour le texte du trigger
+                const modelText = option.querySelector('span').textContent;
+                document.getElementById('current-model-name').textContent = modelText;
+
+                // Fermer le dropdown
+                document.getElementById('model-list-dropdown').classList.add('hidden');
+                document.querySelector('.expand-arrow').classList.remove('open');
+
+                console.log('[Settings] Modèle sélectionné:', model);
+            });
         });
     }
 
-    function showApiError(message) {
-        const errorEl = document.getElementById('api-error');
-        if (errorEl) {
-            errorEl.textContent = message;
-            errorEl.classList.remove('hidden');
+    function showApiFeedback(message, type) {
+        const feedbackEl = document.getElementById('api-key-feedback');
+        if (feedbackEl) {
+            feedbackEl.textContent = message;
+            feedbackEl.className = `api-key-feedback ${type}`;
+            feedbackEl.classList.remove('hidden');
         }
     }
 

@@ -188,63 +188,60 @@
       </div>
       
       <div class="settings-body">
-        <!-- CARTE API -->
-        <div class="settings-card">
-          <div class="card-header-row" id="toggle-api-card">
-            <div class="card-header-left">
-              <span class="card-icon">🔑</span>
-              <span class="card-title">Connexion API</span>
+        <!-- GEMINI CARD (V1 DESIGN) -->
+        <div class="provider-card active-provider open">
+          <!-- Header -->
+          <div class="provider-header">
+            <div class="header-left">
+              <span class="provider-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="url(#geminiGradient)"><defs><linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#4E86F0;stop-opacity:1" /><stop offset="100%" style="stop-color:#9B6EF3;stop-opacity:1" /></linearGradient></defs><path d="M12,2 L14,9 L21,11 L14,13 L12,20 L10,13 L3,11 L10,9 L12,2 Z" /><path d="M19,19 L20,16 L21,19 L24,20 L21,21 L20,24 L19,21 L16,20 L19,19 Z" /></svg>
+              </span>
+              <div class="provider-name">Google Gemini</div>
             </div>
-            <div class="card-header-right">
-              <span id="api-status" class="status-badge">Non configuré</span>
-              <span class="chevron" id="api-chevron">▼</span>
+            <div class="header-right">
+              <div id="api-status" class="status-badge">Non connecté</div>
             </div>
           </div>
           
-          <div id="api-card-content" class="card-content">
-            <p class="card-desc">Entrez votre clé API Google Gemini pour activer l'analyse automatique des profils.</p>
-            
-            <!-- État : Clé non configurée -->
-            <div id="api-form-section" class="api-form-section">
-              <div class="api-form">
-                <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off"/>
+          <!-- Zone Config (Clé API) -->
+          <div class="api-config-area">
+            <div class="api-input-group">
+              <label class="api-label">Clé API</label>
+              <div class="api-input-wrapper">
+                <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off">
                 <button id="btn-save-api" class="btn-validate">Valider</button>
               </div>
-              <p id="api-error" class="api-error hidden"></p>
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">Obtenir une clé gratuite →</a>
+              <div id="api-key-feedback" class="api-key-feedback hidden"></div>
             </div>
-            
-            <!-- État : Clé configurée -->
-            <div id="api-configured-section" class="api-configured hidden">
-              <div class="configured-key-row">
-                <span class="key-display" id="key-display">AIza...xxxx</span>
-                <button id="btn-remove-api" class="btn-remove" title="Supprimer la clé">✕</button>
-              </div>
-              <p class="api-success">✓ Clé validée et active</p>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-help-link">Obtenir une clé Gemini gratuite →</a>
+          </div>
+
+          <!-- Zone Modèle (Accordéon) -->
+          <div class="model-trigger-zone" id="model-trigger">
+            <span id="current-model-name" class="current-model-text">⚡ Analyse Rapide (Flash)</span>
+            <div class="expand-arrow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          </div>
+          
+          <!-- LISTE DÉROULÉE -->
+          <div id="model-list-dropdown" class="model-list-dropdown hidden">
+            <div class="model-option selected" data-model="gemini-2.0-flash">
+              <span>⚡ Analyse Rapide (v2.0 Flash)</span>
+              <span class="check-icon">✓</span>
+            </div>
+            <div class="model-option" data-model="gemini-2.0-flash-thinking-exp">
+              <span>🧠 Analyse Thinking (v2.0 Thinking)</span>
+              <span class="check-icon hidden">✓</span>
             </div>
           </div>
         </div>
 
-        <!-- CARTE À PROPOS -->
-        <div class="settings-card">
-          <div class="card-header-row" id="toggle-about-card">
-            <div class="card-header-left">
-              <span class="card-icon">ℹ️</span>
-              <span class="card-title">À propos</span>
-            </div>
-            <div class="card-header-right">
-              <span class="version-badge">v2.0</span>
-              <span class="chevron" id="about-chevron">▼</span>
-            </div>
-          </div>
-          
-          <div id="about-card-content" class="card-content hidden">
-            <p class="card-desc">Pawz - Extension d'analyse de candidats propulsée par l'IA.</p>
-            <div class="about-links">
-              <a href="#" class="about-link">Documentation</a>
-              <a href="#" class="about-link">Support</a>
-            </div>
-          </div>
+        <!-- À PROPOS (Compact) -->
+        <div class="about-footer">
+          <span>Pawz v2.0</span>
+          <span class="separator">•</span>
+          <a href="#" class="about-link">Documentation</a>
         </div>
       </div>
     </div>
