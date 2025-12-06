@@ -1,142 +1,364 @@
 /**
- * PAWZ V2 - Content Script
- * Phase 2 : Intelligence & Capture
+ * PAWZ V2 - Content Script (Refactored)
+ * Trigger Button with Drag-Drop, Mini-Sidebar, Smart Analysis Logic
  */
 
-console.log("[Pawz Content] Script loaded.");
+console.log("[Pawz] Content script loaded.");
 
-// --- CONFIG ---
+// === CONFIG ===
 const TRIGGER_ID = 'pawz-trigger-root';
+const STORAGE_KEY_POS = 'pawz_trigger_position';
+
 let _shadowRoot = null;
 let _triggerBtn = null;
+let _miniSidebar = null;
+let _dragOverlay = null;
+let _isDragging = false;
+let _startY = 0;
+let _currentY = 50; // % from top
 
-// --- INIT ---
+// === INIT ===
 function init() {
     if (document.getElementById(TRIGGER_ID)) return;
-    createTrigger();
+    loadPosition().then(() => {
+        createTrigger();
+    });
 }
 
-// --- UI COMPONENTS (TRIGGER) ---
+async function loadPosition() {
+    try {
+        const data = await chrome.storage.local.get(STORAGE_KEY_POS);
+        if (data[STORAGE_KEY_POS]) {
+            _currentY = data[STORAGE_KEY_POS];
+        }
+    } catch (e) {
+        console.warn("[Pawz] Error loading position:", e);
+    }
+}
+
+async function savePosition() {
+    try {
+        await chrome.storage.local.set({ [STORAGE_KEY_POS]: _currentY });
+    } catch (e) {
+        console.warn("[Pawz] Error saving position:", e);
+    }
+}
+
+// === CREATE UI ===
 function createTrigger() {
-    // 1. Host
+    // Host
     const host = document.createElement('div');
     host.id = TRIGGER_ID;
     host.style.cssText = `
         position: fixed !important;
-        bottom: 20px !important;
-        right: 20px !important;
+        top: ${_currentY}% !important;
+        right: 15px !important;
+        transform: translateY(-50%) !important;
         z-index: 2147483647 !important;
         pointer-events: auto !important;
     `;
     document.body.appendChild(host);
 
-    // 2. Cloud Shadow
+    // Shadow DOM
     _shadowRoot = host.attachShadow({ mode: 'open' });
 
-    // 3. Styles
+    // Styles
     const styleLink = document.createElement('link');
     styleLink.rel = 'stylesheet';
     styleLink.href = chrome.runtime.getURL('content/trigger.css');
     _shadowRoot.appendChild(styleLink);
 
-    // 4. Element
+    // Trigger Button
     _triggerBtn = document.createElement('div');
-    _triggerBtn.className = 'pawz-trigger-icon-only';
-    _triggerBtn.title = 'Ajouter ce profil';
+    _triggerBtn.className = 'pawz-trigger';
+    _triggerBtn.title = 'Pawz - Analyser';
 
     const img = document.createElement('img');
-    img.src = chrome.runtime.getURL('assets/logo-blanc.svg');
-    img.className = 'trigger-icon-img';
-    img.onerror = () => { _triggerBtn.textContent = '🐾'; _triggerBtn.style.fontSize = '24px'; };
+    img.src = chrome.runtime.getURL('assets/Logo Pawz Blanc VFinal.PNG');
+    img.className = 'trigger-logo';
+    img.draggable = false;
+    img.onerror = () => { _triggerBtn.textContent = '🐾'; };
     _triggerBtn.appendChild(img);
 
     _shadowRoot.appendChild(_triggerBtn);
 
-    // 5. Events
-    _triggerBtn.addEventListener('click', handleCaptureClick);
+    // Mini-Sidebar (hidden initially)
+    createMiniSidebar();
+
+    // Events
+    setupEvents();
 }
 
-// --- LOGIC: CAPTURE ---
-async function handleCaptureClick(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    console.log("[Pawz] Capture triggered!");
+function createMiniSidebar() {
+    _miniSidebar = document.createElement('div');
+    _miniSidebar.className = 'pawz-mini-sidebar hidden';
+    _miniSidebar.innerHTML = `
+        <div class="mini-sidebar-header">
+            <button class="btn-close-mini" title="Fermer">×</button>
+        </div>
+        <div class="mini-sidebar-buttons"></div>
+    `;
+    _shadowRoot.appendChild(_miniSidebar);
 
-    // 1. Extract Content
-    const payload = extractPageContent();
-    if (!payload) {
-        showErrorAnimation();
+    // Close button
+    _miniSidebar.querySelector('.btn-close-mini').addEventListener('click', closeMiniSidebar);
+}
+
+function closeMiniSidebar() {
+    _miniSidebar.classList.remove('open');
+    setTimeout(() => _miniSidebar.classList.add('hidden'), 200);
+}
+
+function openMiniSidebar() {
+    updateMiniSidebarButtons();
+    _miniSidebar.classList.remove('hidden');
+    requestAnimationFrame(() => _miniSidebar.classList.add('open'));
+}
+
+// === SETUP EVENTS ===
+function setupEvents() {
+    _triggerBtn.addEventListener('mousedown', handleMouseDown);
+}
+
+let _dragStartPos = null;
+let _hasMoved = false;
+
+function handleMouseDown(e) {
+    if (e.button !== 0) return; // Left click only
+    
+    e.preventDefault();
+    _dragStartPos = { x: e.clientX, y: e.clientY };
+    _hasMoved = false;
+
+    const host = document.getElementById(TRIGGER_ID);
+    const rect = host.getBoundingClientRect();
+    const initialTop = rect.top + rect.height / 2;
+
+    const onMouseMove = (moveEvent) => {
+        const deltaX = Math.abs(moveEvent.clientX - _dragStartPos.x);
+        const deltaY = Math.abs(moveEvent.clientY - _dragStartPos.y);
+        
+        // Threshold to distinguish click from drag
+        if (deltaX > 5 || deltaY > 5) {
+            _hasMoved = true;
+            _isDragging = true;
+            
+            // Create overlay if not exists
+            if (!_dragOverlay) {
+                _dragOverlay = document.createElement('div');
+                _dragOverlay.className = 'pawz-drag-overlay';
+                _shadowRoot.appendChild(_dragOverlay);
+                _triggerBtn.classList.add('dragging');
+            }
+
+            const newY = moveEvent.clientY;
+            _currentY = Math.max(5, Math.min(95, (newY / window.innerHeight) * 100));
+            host.style.top = `${_currentY}%`;
+        }
+    };
+
+    const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
+        if (_dragOverlay) {
+            _dragOverlay.remove();
+            _dragOverlay = null;
+        }
+        _triggerBtn.classList.remove('dragging');
+
+        if (_hasMoved) {
+            // It was a drag
+            savePosition();
+            _isDragging = false;
+        } else {
+            // It was a click
+            console.log("[Pawz] Opening mini-sidebar...");
+            openMiniSidebar();
+        }
+        
+        _dragStartPos = null;
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+}
+
+// === MINI-SIDEBAR BUTTONS LOGIC ===
+async function updateMiniSidebarButtons() {
+    const container = _miniSidebar.querySelector('.mini-sidebar-buttons');
+    container.innerHTML = '';
+
+    const currentUrl = window.location.href;
+    const circumstances = await getCurrentCircumstances();
+
+    if (!circumstances) {
+        // Pas de job ou clé API
+        container.innerHTML = '<div style="padding:10px; color:#6b7280; font-size:12px;">Configurez un job et une clé API dans Pawz.</div>';
         return;
     }
 
-    // 2. Send to Background
+    // Check existing analyses for this URL
+    const analyses = await getAnalysesForUrl(currentUrl);
+    const exactMatch = analyses.find(a => 
+        a.job_id === circumstances.job_id && 
+        a.model === circumstances.model
+    );
+
+    if (exactMatch) {
+        // Exact match: only show "Afficher l'analyse"
+        const btnView = document.createElement('button');
+        btnView.className = 'mini-sidebar-btn btn-view-analysis';
+        btnView.textContent = '👁️ Afficher l\'analyse';
+        btnView.addEventListener('click', () => viewAnalysis(exactMatch.id));
+        container.appendChild(btnView);
+    } else if (analyses.length > 0) {
+        // URL analyzed but different circumstances
+        const btnAnalyze = document.createElement('button');
+        btnAnalyze.className = 'mini-sidebar-btn btn-analyze';
+        btnAnalyze.textContent = '🚀 Lancer l\'analyse';
+        btnAnalyze.addEventListener('click', () => launchAnalysis(circumstances));
+        container.appendChild(btnAnalyze);
+
+        // Most recent analysis
+        const mostRecent = analyses.sort((a, b) => b.timestamp - a.timestamp)[0];
+        const btnViewRecent = document.createElement('button');
+        btnViewRecent.className = 'mini-sidebar-btn btn-view-analysis';
+        btnViewRecent.textContent = '👁️ Analyse la plus récente';
+        btnViewRecent.addEventListener('click', () => viewAnalysis(mostRecent.id));
+        container.appendChild(btnViewRecent);
+    } else {
+        // Never analyzed
+        const btnAnalyze = document.createElement('button');
+        btnAnalyze.className = 'mini-sidebar-btn btn-analyze';
+        btnAnalyze.textContent = '🚀 Lancer l\'analyse';
+        btnAnalyze.addEventListener('click', () => launchAnalysis(circumstances));
+        container.appendChild(btnAnalyze);
+    }
+}
+
+async function getCurrentCircumstances() {
     try {
+        const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_settings']);
+        const jobs = data.pawz_jobs || [];
+        const settings = data.pawz_settings || {};
+
+        const activeJob = jobs.find(j => j.is_active);
+        if (!activeJob || !settings.api_key) return null;
+
+        return {
+            job_id: activeJob.id,
+            model: settings.selected_model || 'gemini-2.0-flash',
+            api_key: settings.api_key
+        };
+    } catch (e) {
+        console.error("[Pawz] Error getting circumstances:", e);
+        return null;
+    }
+}
+
+async function getAnalysesForUrl(url) {
+    try {
+        const data = await chrome.storage.local.get('pawz_candidates');
+        const candidates = data.pawz_candidates || [];
+        return candidates.filter(c => c.source_url === url && c.status === 'completed');
+    } catch (e) {
+        console.error("[Pawz] Error getting analyses:", e);
+        return [];
+    }
+}
+
+// === ACTIONS ===
+async function launchAnalysis(circumstances) {
+    closeMiniSidebar();
+    
+    // Show loading state
+    _triggerBtn.classList.add('dragging');
+
+    try {
+        const payload = extractPageContent();
+        if (!payload) {
+            showError();
+            return;
+        }
+
+        payload.job_id = circumstances.job_id;
+        payload.model = circumstances.model;
+
         const response = await chrome.runtime.sendMessage({
             action: 'ADD_CANDIDATE',
             payload: payload
         });
 
-        // 3. Feedback
         if (response && response.success) {
-            showSuccessAnimation();
+            showSuccess();
         } else {
-            console.warn("[Pawz] Background returned error:", response);
-            // Si l'erreur est "Pas de job actif", on pourrait ouvrir le sidepanel
-            showErrorAnimation();
-            if (response && response.error === 'NO_ACTIVE_JOB') {
-                // Ouvrir le sidepanel (via background car on ne peut pas le faire directement content script)
-                // Mais chrome.sidePanel.open() doit être une action utilisateur.
-                alert("Veuillez d'abord sélectionner un Job dans l'extension Pawz.");
-            }
+            console.warn("[Pawz] Error:", response?.error);
+            showError();
         }
-    } catch (err) {
-        console.error("[Pawz] Communication error:", err);
-        showErrorAnimation();
+    } catch (e) {
+        console.error("[Pawz] Analysis error:", e);
+        showError();
     }
+
+    _triggerBtn.classList.remove('dragging');
 }
 
-function extractPageContent() {
-    // Stratégie simple pour Phase 2 : Tout le texte visible
-    // Plus tard : Logique spécifique LinkedIn vs PDF
-    const textContent = document.body.innerText;
+function viewAnalysis(analysisId) {
+    closeMiniSidebar();
     
-    // Métadonnées de base
-    const title = document.title;
-    const url = window.location.href;
+    // Send message to open side panel with this analysis
+    chrome.runtime.sendMessage({
+        action: 'OPEN_ANALYSIS',
+        analysisId: analysisId
+    });
+}
 
-    if (!textContent || textContent.length < 50) return null;
+// === CONTENT EXTRACTION ===
+function extractPageContent() {
+    const url = window.location.href;
+    const title = document.title;
+    
+    let contentType = 'website';
+    let content = '';
+
+    // Detect page type
+    if (url.includes('linkedin.com')) {
+        contentType = 'linkedin';
+        content = document.body.innerText;
+    } else if (url.endsWith('.pdf') || location.protocol === 'file:') {
+        contentType = 'pdf';
+        // PDF handling would need special logic
+        content = document.body.innerText;
+    } else {
+        contentType = 'website';
+        // Truncate for websites to reduce tokens
+        content = document.body.innerText.substring(0, 15000);
+    }
+
+    if (!content || content.length < 50) return null;
 
     return {
         source_url: url,
         page_title: title,
-        content_text: textContent,
+        content_text: content,
+        content_type: contentType,
         timestamp: Date.now()
     };
 }
 
-// --- LOGIC: ANIMATIONS (TRIGGER_UI) ---
-function showSuccessAnimation() {
-    if (!_triggerBtn) return;
-    
-    // Add success class
+// === FEEDBACK ===
+function showSuccess() {
     _triggerBtn.classList.add('state-success');
-    
-    // Reset after 2s
-    setTimeout(() => {
-        _triggerBtn.classList.remove('state-success');
-    }, 2000);
+    setTimeout(() => _triggerBtn.classList.remove('state-success'), 2000);
 }
 
-function showErrorAnimation() {
-    if (!_triggerBtn) return;
-    
+function showError() {
     _triggerBtn.classList.add('state-error');
-    setTimeout(() => {
-        _triggerBtn.classList.remove('state-error');
-    }, 500);
+    setTimeout(() => _triggerBtn.classList.remove('state-error'), 500);
 }
 
-// --- LAUNCHER ---
+// === LAUNCH ===
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {

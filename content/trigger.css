@@ -1,63 +1,167 @@
-/* Golden Master - Trigger CSS */
+/* PAWZ V2 - Trigger CSS (Refactored) */
 :host {
-    all: initial; /* Reset héritage */
+    all: initial;
 }
 
-.pawz-trigger-icon-only {
-    width: 48px;
-    height: 48px;
+/* === PASTILLE (Bouton principal) === */
+.pawz-trigger {
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
-    background: linear-gradient(160deg, #00509d 0%, #003f7f 100%);
-    border: 2px solid #003566;
+    background: linear-gradient(145deg, #0077cc 0%, #005fa3 100%);
+    border: 2px solid #004d85;
     box-shadow:
-        0 6px 15px rgba(0, 45, 90, 0.4),
-        inset 0 2px 3px rgba(255, 255, 255, 0.25),
-        inset 0 -2px 3px rgba(0, 0, 0, 0.2);
+        0 4px 12px rgba(0, 80, 160, 0.4),
+        inset 0 2px 3px rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
     z-index: 2147483647;
-    overflow: hidden; /* Pour l'effet de vague/succès */
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
-.pawz-trigger-icon-only:hover {
-    transform: scale(1.1);
-    box-shadow: 0 10px 20px rgba(0, 45, 90, 0.5);
+.pawz-trigger:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 18px rgba(0, 80, 160, 0.5);
 }
 
-.trigger-icon-img {
-    width: 24px;
-    height: 24px;
+.pawz-trigger.dragging {
+    cursor: grabbing;
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 80, 160, 0.6);
+}
+
+.trigger-logo {
+    width: 95%;
+    height: 95%;
     object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    transition: all 0.3s ease;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
-/* --- ETAT SUCCESS (Check Vert) --- */
-.pawz-trigger-icon-only.state-success {
-    background: #10B981 !important; /* Vert Succès */
-    border-color: #059669 !important;
-    transform: scale(1.1);
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+/* === OVERLAY DRAG (Vitre) === */
+.pawz-drag-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    z-index: 2147483646;
+    cursor: grabbing;
+    user-select: none;
 }
 
-.pawz-trigger-icon-only.state-success .trigger-icon-img {
-    transform: scale(0); /* Cache le logo */
+/* === MINI-SIDEBAR === */
+.pawz-mini-sidebar {
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    min-width: 180px;
+    z-index: 2147483646;
     opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
 }
 
-/* L'icône Check sera injectée dynamiquement ou gérée via classes, 
-   mais ici on prépare une pseudo-classe pour afficher un check si on veut du pur CSS */
-.pawz-trigger-icon-only.state-success::after {
+.pawz-mini-sidebar.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.pawz-mini-sidebar.hidden {
+    display: none;
+}
+
+/* Header avec bouton fermer */
+.mini-sidebar-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 4px;
+}
+
+.btn-close-mini {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+}
+.btn-close-mini:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Boutons sidebar */
+.mini-sidebar-btn {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.mini-sidebar-btn:last-child {
+    margin-bottom: 0;
+}
+
+.btn-analyze {
+    background: linear-gradient(145deg, #0077cc 0%, #005fa3 100%);
+    color: white;
+}
+.btn-analyze:hover {
+    background: linear-gradient(145deg, #0088dd 0%, #006bb4 100%);
+}
+
+.btn-view-analysis {
+    background: #f3f4f6;
+    color: #374151;
+}
+.btn-view-analysis:hover {
+    background: #e5e7eb;
+}
+
+/* === ÉTATS FEEDBACK === */
+.pawz-trigger.state-success {
+    background: linear-gradient(145deg, #10B981 0%, #059669 100%) !important;
+    border-color: #047857 !important;
+}
+
+.pawz-trigger.state-success::after {
     content: "✓";
     position: absolute;
     color: white;
     font-size: 24px;
     font-weight: 800;
+    animation: scaleIn 0.3s forwards;
+}
+
+.pawz-trigger.state-success .trigger-logo {
     opacity: 0;
-    animation: scaleIn 0.3s forwards 0.1s;
+}
+
+.pawz-trigger.state-error {
+    background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%) !important;
+    border-color: #b91c1c !important;
+    animation: shake 0.4s ease;
 }
 
 @keyframes scaleIn {
@@ -65,16 +169,8 @@
     to { transform: scale(1); opacity: 1; }
 }
 
-/* --- ETAT ERROR (Shake) --- */
-.pawz-trigger-icon-only.state-error {
-    background: #ef4444 !important;
-    border-color: #b91c1c !important;
-    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-}
-
 @keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-3px); }
+    40%, 80% { transform: translateX(3px); }
 }
