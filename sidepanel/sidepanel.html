@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pawz Sidebar</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="widget-frame position-right">
+        <!-- HEADER -->
+        <div class="w-header">
+            <div class="brand-area">
+                <img src="../assets/logo.svg" alt="Pawz" class="logo-icon">
+                <span class="brand-name">Pawz<span style="color: #F97316;">.</span></span>
+            </div>
+            <div class="actions-area">
+                <button id="btn-settings" class="icon-btn" title="Paramètres">⚙️</button>
+                <button id="btn-reduce" class="btn-reduce" title="Réduire">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <div class="nav-tabs">
+            <div id="tab-search" class="nav-item active">Recherche</div>
+            <div id="tab-analysis" class="nav-item">Analyse</div>
+        </div>
+
+        <!-- BODY -->
+        <div class="w-body">
+            
+            <!-- VUE RECHERCHE -->
+            <div id="view-search">
+                <div class="input-group">
+                    <!-- Top Row: Favorites + Actions -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                        <!-- Saved Briefs Dropdown (Flex 1 to take available space) -->
+                        <div class="saved-briefs-container" style="position: relative; flex: 1;">
+                            <div class="brief-combo-box" style="display: flex; align-items: center; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff;">
+                                <input type="text" id="brief-title-input" placeholder="Titre..." style="flex: 1; border: none; padding: 6px 10px; font-family: 'Inter', sans-serif; font-size: 13px; outline: none; background: transparent; min-width: 0;">
+                                <button id="btn-brief-dropdown" style="background: none; border: none; padding: 6px; cursor: pointer; color: #6b7280; display: flex; align-items: center;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </button>
+                            </div>
+                            <div id="saved-briefs-list" class="model-list-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 100; max-height: 200px; overflow-y: auto; margin-top: 4px;">
+                                <!-- Items will be injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display: flex; gap: 5px;">
+                            <button id="btn-save-brief" class="refresh-btn" title="Enregistrer dans les favoris">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            </button>
+                            <button id="btn-restore-brief" class="refresh-btn" title="Restaurer la dernière validation">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                            </button>
+                            <button id="btn-reset-brief" class="refresh-btn" title="Effacer tout">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="label-row">
+                        <label class="input-label">📝 Fiche de Poste</label>
+                    </div>
+                    <textarea id="brief-text" class="styled-textarea" placeholder="Collez la description ici..." autocomplete="off"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" style="color: #F97316; display: flex; align-items: center; gap: 5px;">
+                        ⛔ Critères Obligatoires
+                    </label>
+                    <div class="skill-adder">
+                        <input id="must-input" type="text" class="skill-input" placeholder="Ajouter (ex: React, Lyon, 5 ans...)" autocomplete="off" readonly>
+                        <button id="btn-add-must" class="add-btn">+</button>
+                    </div>
+                    <div id="must-tags" class="skill-tags">
+                        <!-- Tags injectés ici -->
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-top: 25px;">
+                    <label class="input-label" style="color: #10b981; display: flex; align-items: center; gap: 5px;">
+                        ✨ Les Plus (Bonus)
+                    </label>
+                    <div class="skill-adder">
+                        <input id="nice-input" type="text" class="skill-input" placeholder="Ajouter (ex: Startup, Anglais C2...)" autocomplete="off" readonly>
+                        <button id="btn-add-nice" class="add-btn">+</button>
+                    </div>
+                    <div id="nice-tags" class="skill-tags">
+                        <!-- Tags injectés ici -->
+                    </div>
+                </div>
+
+                <div class="save-container">
+                    <button id="btn-save-search" class="btn-main primary">Valider la recherche</button>
+                    <button id="btn-launch-analysis-search" class="btn-main primary hidden">Lancer l'analyse</button>
+                    <!-- LE BADGE QUI APPARAÎT -->
+                    <div id="save-badge" class="validation-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        Validé
+                    </div>
+                </div>
+            </div>
+
+            <!-- VUE ANALYSE (Cachée par défaut) -->
+            <div id="view-analysis" class="hidden">
+                <div class="header-profile">
+                    <div class="hp-info"><h3 id="candidate-name">Candidat</h3><p id="candidate-title">Titre détecté</p></div>
+                    <div id="candidate-initials" class="initials-badge">--</div>
+                </div>
+                <div style="text-align: center;">
+                    <div id="score-display" class="score-big">--%</div>
+                    <div id="verdict-display" class="verdict-text">En attente</div>
+                </div>
+                <div class="accordion open">
+                    <div class="accordion-header">
+                        <span>✅ Points Forts</span>
+                        <div class="header-chevron">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <ul id="list-strengths" class="list-check" style="margin: 0; padding: 0; list-style: none;">
+                            <li>Aucune analyse lancée.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="accordion">
+                    <div class="accordion-header">
+                        <span style="color: #F97316;">⚠️ Points de Vigilance</span>
+                        <div class="header-chevron">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <ul id="list-warnings" class="list-warn" style="margin: 0; padding: 0; list-style: none;">
+                            <li>Aucune analyse lancée.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="accordion">
+                    <div class="accordion-header">
+                        <span>🤖 Résumé Détaillé</span>
+                        <div class="header-chevron">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <p id="analysis-summary">Lancez une analyse pour voir le résumé.</p>
+                    </div>
+                </div>
+                <button id="btn-new-analysis" class="btn-main primary" style="margin-top: 20px;">Nouvelle analyse</button>
+            </div>
+
+        </div>
+
+        <!-- SETTINGS OVERLAY (Caché par défaut) -->
+        <div id="settings-overlay" class="settings-overlay">
+            <div class="w-header">
+                <div class="brand-area">
+                    <button id="btn-back-settings" class="icon-btn" style="margin-right: 10px;">←</button>
+                    <span class="brand-name">Paramètres</span>
+                </div>
+                <div class="actions-area">
+                    <button id="btn-close-settings" class="icon-btn" title="Fermer">×</button>
+                </div>
+            </div>
+
+            <div class="w-body">
+                <p class="settings-header-text">
+                    Connectez votre Clé API Google Gemini pour activer l'analyseur.
+                </p>
+
+                <label class="input-label" style="margin-bottom: 15px;">🤖 ASSISTANTS DISPONIBLES</label>
+
+                <!-- GEMINI CARD (OUVERTE) -->
+                <div class="provider-card active-provider open">
+                    <!-- Header avec Chevron (BAS) -->
+                    <div class="provider-header">
+                        <div class="header-left">
+                            <span class="provider-logo">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="url(#geminiGradient)"><defs><linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#4E86F0;stop-opacity:1" /><stop offset="100%" style="stop-color:#9B6EF3;stop-opacity:1" /></linearGradient></defs><path d="M12,2 L14,9 L21,11 L14,13 L12,20 L10,13 L3,11 L10,9 L12,2 Z" /><path d="M19,19 L20,16 L21,19 L24,20 L21,21 L20,24 L19,21 L16,20 L19,19 Z" /></svg>
+                            </span>
+                            <div class="provider-name">Google Gemini</div>
+                        </div>
+                        
+                        <div class="header-right">
+                            <div id="api-status" class="status-badge">Non connecté</div>
+                            <div class="header-chevron">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Zone Config (Clé API) -->
+                    <div class="api-config-area">
+                        <div class="api-input-group">
+                            <label class="api-label">Clé API</label>
+                            <div class="api-input-wrapper">
+                                <input id="api-key-input" type="text" class="api-input" placeholder="AIzaSyD..." autocomplete="off" readonly>
+                                <button id="btn-save-api" class="btn-validate">Valider</button>
+                            </div>
+                            <!-- Feedback visuel de persistance -->
+                            <div id="api-key-feedback" class="api-key-feedback hidden"></div>
+                        </div>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-help-link" style="text-align: right; margin-top: 0; margin-bottom: 8px;">Obtenir une clé Gemini gratuite</a>
+                    </div>
+
+                    <!-- Zone Modèle -->
+                    <div class="model-trigger-zone">
+                        <span id="current-model-name" class="current-model-text">⚡ Analyse Rapide</span>
+                        <div class="expand-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- LISTE DÉROULÉE -->
+                    <div class="model-list-dropdown">
+                        <!-- Option Rapide -->
+                        <div class="model-option selected" data-model="gemini-2.5-flash">
+                            <span>⚡ Analyse Rapide (v2.5)</span>
+                            <span class="check-icon">✓</span>
+                        </div>
+                        
+                        <!-- Option Expert -->
+                        <div class="model-option" data-model="gemini-2.5-pro">
+                            <span>🧠 Analyse Expert (v2.5 Pro)</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="settings-footer">
+                    <a href="#" class="privacy-link">Notre politique de confidentialité</a>
+                    <a href="#" class="tuto-link">Comment utiliser Pawz</a>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
