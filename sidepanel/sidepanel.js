@@ -308,7 +308,7 @@
              <div class="slider-row-inline">
                  <div class="slider-info">
                      <span class="slider-label">${s.l}</span>
-                     <span class="info-tooltip" title="${s.t}">❓</span>
+                     <span class="info-tooltip" data-tooltip="${s.t}">❓</span>
                  </div>
                  <div class="slider-wrapper">
                      <input type="range" class="tuning-range" data-key="${s.k}" min="1" max="10" value="${val}">
