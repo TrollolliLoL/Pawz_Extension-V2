@@ -644,8 +644,9 @@
         const settings = data.pawz_settings || {};
         
         const badge = document.getElementById('api-status');
-        const apiInput = document.getElementById('api-key-input');
-        const feedbackEl = document.getElementById('api-key-feedback');
+        const inputWrapper = document.querySelector('.api-input-wrapper');
+        const configuredDisplay = document.getElementById('configured-key-display');
+        const keyMasked = document.getElementById('key-masked');
         
         if (settings.api_key) {
             // Clé configurée
@@ -653,18 +654,13 @@
                 badge.classList.add('connected');
                 badge.textContent = 'Connecté';
             }
-            if (apiInput) {
-                // Afficher la clé masquée dans le placeholder
+            // Masquer l'input, montrer la clé en vert
+            if (inputWrapper) inputWrapper.style.display = 'none';
+            if (configuredDisplay) {
+                configuredDisplay.classList.remove('hidden');
                 const key = settings.api_key;
-                const masked = key.substring(0, 6) + '...' + key.substring(key.length - 4);
-                apiInput.placeholder = masked;
-                apiInput.value = '';
-            }
-            // Montrer le feedback succès permanent
-            if (feedbackEl) {
-                feedbackEl.textContent = '✓ Clé configurée';
-                feedbackEl.className = 'api-key-feedback success';
-                feedbackEl.classList.remove('hidden');
+                const masked = key.substring(0, 6) + '********';
+                if (keyMasked) keyMasked.textContent = masked;
             }
         } else {
             // Pas de clé
@@ -672,12 +668,9 @@
                 badge.classList.remove('connected');
                 badge.textContent = 'Non connecté';
             }
-            if (apiInput) {
-                apiInput.placeholder = 'AIzaSyD...';
-            }
-            if (feedbackEl) {
-                feedbackEl.classList.add('hidden');
-            }
+            // Montrer l'input, cacher la clé
+            if (inputWrapper) inputWrapper.style.display = 'flex';
+            if (configuredDisplay) configuredDisplay.classList.add('hidden');
         }
 
         // Mettre à jour le modèle sélectionné
@@ -854,6 +847,22 @@
 
                 console.log('[Settings] Modèle sélectionné:', model);
             });
+        });
+
+        // --- Toggle Gemini Card (réduire/ouvrir) ---
+        document.getElementById('toggle-gemini-card')?.addEventListener('click', () => {
+            const content = document.getElementById('gemini-card-content');
+            const chevron = document.getElementById('gemini-chevron');
+            content.classList.toggle('hidden');
+            chevron.classList.toggle('collapsed');
+        });
+
+        // --- Supprimer la clé API ---
+        document.getElementById('btn-remove-api')?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('Supprimer la clé API ?')) return;
+            await chrome.storage.local.set({ pawz_settings: {} });
+            await loadSettings();
         });
     }
 

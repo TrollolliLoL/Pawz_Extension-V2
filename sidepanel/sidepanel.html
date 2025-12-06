@@ -190,8 +190,8 @@
       <div class="settings-body">
         <!-- GEMINI CARD (V1 DESIGN) -->
         <div class="provider-card active-provider open">
-          <!-- Header -->
-          <div class="provider-header">
+          <!-- Header (cliquable pour réduire) -->
+          <div class="provider-header" id="toggle-gemini-card">
             <div class="header-left">
               <span class="provider-logo">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="url(#geminiGradient)"><defs><linearGradient id="geminiGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#4E86F0;stop-opacity:1" /><stop offset="100%" style="stop-color:#9B6EF3;stop-opacity:1" /></linearGradient></defs><path d="M12,2 L14,9 L21,11 L14,13 L12,20 L10,13 L3,11 L10,9 L12,2 Z" /><path d="M19,19 L20,16 L21,19 L24,20 L21,21 L20,24 L19,21 L16,20 L19,19 Z" /></svg>
@@ -200,8 +200,14 @@
             </div>
             <div class="header-right">
               <div id="api-status" class="status-badge">Non connecté</div>
+              <span class="header-chevron" id="gemini-chevron">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              </span>
             </div>
           </div>
+          
+          <!-- Contenu repliable -->
+          <div id="gemini-card-content">
           
           <!-- Zone Config (Clé API) -->
           <div class="api-config-area">
@@ -211,7 +217,11 @@
                 <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off">
                 <button id="btn-save-api" class="btn-validate">Valider</button>
               </div>
-              <div id="api-key-feedback" class="api-key-feedback hidden"></div>
+              <!-- Affichage clé configurée (vert avec X) -->
+              <div id="configured-key-display" class="configured-key-display hidden">
+                <span id="key-masked" class="key-masked">AIzaSy********</span>
+                <button id="btn-remove-api" class="btn-remove-key" title="Supprimer la clé">×</button>
+              </div>
             </div>
             <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-help-link">Obtenir une clé Gemini gratuite →</a>
           </div>
@@ -235,6 +245,7 @@
               <span class="check-icon hidden">✓</span>
             </div>
           </div>
+          </div> <!-- Fin gemini-card-content -->
         </div>
 
         <!-- À PROPOS (Compact) -->
