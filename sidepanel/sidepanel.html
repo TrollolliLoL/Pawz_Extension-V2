@@ -7,157 +7,184 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- HEADER (FIXE) -->
+    <!-- HEADER -->
     <header class="w-header">
       <div class="brand-area">
         <img src="../assets/logo.svg" alt="Pawz" class="logo-icon" />
-        <!-- Sélecteur de Job (NOUVEAU) -->
-        <select id="job-selector" class="job-dropdown">
-          <option value="" disabled selected>Chargement...</option>
-          <!-- Options seront injectées ici -->
-          <option value="new">+ Nouveau Poste</option>
-        </select>
+        <!-- Le sélecteur de Job disparaît ici car la gestion se fait dans l'onglet Recherche -->
+        <span class="brand-name">Pawz</span>
       </div>
       <div class="actions-area">
-        <button id="btn-settings" class="icon-btn" title="Paramètres">
-          ⚙️
-        </button>
+        <button id="btn-settings" class="icon-btn" title="Paramètres">⚙️</button>
       </div>
     </header>
 
-    <!-- MAIN CONTENT (DASHBOARD) -->
-    <main id="view-dashboard" class="w-body">
-      <!-- Stats Rapides -->
-      <div class="queue-stats">
-        <span class="stat-badge">⏳ <span id="count-pending">0</span></span>
-        <span class="stat-badge">✅ <span id="count-done">0</span></span>
-      </div>
+    <!-- NAVIGATION TABS -->
+    <div class="nav-tabs">
+      <div id="tab-search" class="nav-item active">Recherche</div>
+      <div id="tab-analysis" class="nav-item">Analyse</div>
+    </div>
 
-      <!-- Liste des Candidats -->
-      <div id="candidates-list" class="candidates-container">
-        <!-- Empty State par défaut -->
-        <div class="empty-state">
-          <p>Aucun candidat pour ce poste.</p>
-          <small
-            >Cliquez sur la pastille Pawz sur LinkedIn pour ajouter des
-            profils.</small
-          >
+    <!-- BODY -->
+    <div class="w-body">
+
+      <!-- ============================================ -->
+      <!-- VUE ONGLET : RECHERCHE (Gestion des Mandats) -->
+      <!-- ============================================ -->
+      <div id="view-search">
+
+        <!-- SOUS-VUE 1 : LISTE DES JOBS -->
+        <div id="jobs-list-view">
+            <div class="jobs-list-header">
+                <h3>Mes Mandats</h3>
+                <button id="btn-create-job" class="btn-create">+ Nouveau</button>
+            </div>
+
+            <div id="jobs-container" class="jobs-scroll-area">
+                <!-- Les cartes seront injectées ici par JS -->
+                <!-- Exemple Mock pour le dev CSS (sera vidé par JS) -->
+                <div class="job-card mock-card">
+                    <div class="job-card-header">
+                        <span class="job-title">Développeur Frontend</span>
+                        <div class="job-status active-badge">Actif</div>
+                    </div>
+                    <div class="job-stats">
+                        <span>👥 12 Candidats</span>
+                        <span>📅 06/12/2025</span>
+                    </div>
+                    <div class="job-actions">
+                        <button class="btn-action">✏️ Modifier</button>
+                        <button class="btn-action">🗑️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOUS-VUE 2 : ÉDITION/DETAIL JOB -->
+        <div id="job-edit-view" class="hidden">
+            <div class="edit-nav">
+                <button id="btn-back-jobs" class="back-link">← Retour à la liste</button>
+                <div class="edit-actions">
+                     <button id="btn-activate-job" class="btn-activate" title="Rendre ce mandat actif pour la capture">Activer</button>
+                </div>
+            </div>
+
+            <!-- Titre du poste éditable -->
+            <div class="input-group">
+                <input type="text" id="job-title-input" class="job-title-input" placeholder="Titre du poste (ex: CTO)...">
+            </div>
+
+            <!-- Formulaire Description -->
+            <div class="input-group">
+              <div class="label-row">
+                <label class="input-label">📝 Description / Brief</label>
+              </div>
+              <textarea id="brief-text" class="styled-textarea" placeholder="Collez la description du poste ici..."></textarea>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" style="color: #F97316;">⛔ Critères Obligatoires</label>
+              <div class="skill-adder">
+                <input id="must-input" type="text" class="skill-input" placeholder="Ajouter critère...">
+                <button id="btn-add-must" class="add-btn">+</button>
+              </div>
+              <div id="must-tags" class="skill-tags"></div>
+            </div>
+
+            <div class="input-group" style="margin-top: 15px;">
+              <label class="input-label" style="color: #10b981;">✨ Les Plus (Bonus)</label>
+              <div class="skill-adder">
+                <input id="nice-input" type="text" class="skill-input" placeholder="Ajouter bonus...">
+                <button id="btn-add-nice" class="add-btn">+</button>
+              </div>
+              <div id="nice-tags" class="skill-tags"></div>
+            </div>
+
+            <div class="save-container">
+              <button id="btn-save-search" class="btn-main primary">Enregistrer les modifications</button>
+              <div id="save-badge" class="validation-badge"><span>✓</span> Sauvé</div>
+            </div>
         </div>
       </div>
-    </main>
 
-    <!-- DETAIL OVERLAY (SLIDE-IN) -->
+      <!-- ============================================ -->
+      <!-- VUE ONGLET : ANALYSE (Liste Candidats)       -->
+      <!-- ============================================ -->
+      <div id="view-analysis" class="hidden">
+        <!-- Bannière "Job Actif" pour rappel -->
+        <div id="active-job-banner" class="active-job-banner hidden">
+            <span>🔴 En cours : <b id="banner-job-title">Aucun</b></span>
+        </div>
+
+        <div class="queue-stats">
+          <span class="stat-badge">⏳ <span id="count-pending">0</span></span>
+          <span class="stat-badge">✅ <span id="count-done">0</span></span>
+        </div>
+        <div id="candidates-list" class="candidates-container">
+          <div class="empty-state">
+            <p>Aucun candidat.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DETAIL OVERLAY -->
     <div id="detail-overlay" class="detail-panel hidden">
-      <!-- Navigation Rapide -->
       <div class="detail-nav">
         <button id="btn-close-detail" class="back-btn">← Retour</button>
         <div class="nav-arrows">
-          <button
-            id="btn-prev-candidate"
-            class="nav-arrow-btn"
-            title="Précédent"
-          >
-            ⬆
-          </button>
-          <button id="btn-next-candidate" class="nav-arrow-btn" title="Suivant">
-            ⬇
-          </button>
+            <button id="btn-prev-candidate" class="nav-arrow-btn">⬆</button>
+            <button id="btn-next-candidate" class="nav-arrow-btn">⬇</button>
         </div>
       </div>
-
-      <!-- Contenu Analyse (Récupéré de la V1 mais épuré) -->
       <div class="analysis-content">
         <div class="score-header">
           <h1 id="detail-score" class="score-display">--%</h1>
           <span id="detail-verdict" class="verdict-badge">En attente</span>
         </div>
-
-        <h2 id="detail-name" class="candidate-name-detail">Nom du Candidat</h2>
-        <p id="detail-title" class="candidate-title-detail">Titre du poste</p>
-
-        <!-- Accordéons -->
+        <h2 id="detail-name" class="candidate-name-detail">Nom</h2>
+        <p id="detail-title" class="candidate-title-detail">Titre</p>
         <div class="accordion open">
-          <div class="accordion-header">
-            <span>✅ Points Forts</span>
-            <div class="header-chevron">▼</div>
-          </div>
-          <div class="accordion-content">
-            <ul id="detail-strengths" class="list-check"></ul>
-          </div>
+          <div class="accordion-header"><span>✅ Points Forts</span><div class="header-chevron">▼</div></div>
+          <div class="accordion-content"><ul id="detail-strengths" class="list-check"></ul></div>
         </div>
-
         <div class="accordion">
-          <div class="accordion-header">
-            <span>⚠️ Vigilance</span>
-            <div class="header-chevron">▼</div>
-          </div>
-          <div class="accordion-content">
-            <ul id="detail-warnings" class="list-warn"></ul>
-          </div>
+          <div class="accordion-header"><span>⚠️ Vigilance</span><div class="header-chevron">▼</div></div>
+          <div class="accordion-content"><ul id="detail-warnings" class="list-warn"></ul></div>
         </div>
-
         <div class="accordion">
-          <div class="accordion-header">
-            <span>🤖 Résumé</span>
-            <div class="header-chevron">▼</div>
-          </div>
-          <div class="accordion-content">
-            <p id="detail-summary"></p>
-          </div>
+          <div class="accordion-header"><span>🤖 Résumé</span><div class="header-chevron">▼</div></div>
+          <div class="accordion-content"><p id="detail-summary"></p></div>
         </div>
       </div>
-
-      <!-- Actions Footer -->
       <div class="detail-footer">
-        <a id="btn-open-linkedin" href="#" target="_blank" class="btn-secondary"
-          >Voir Profil</a
-        >
+        <a id="btn-open-linkedin" href="#" target="_blank" class="btn-secondary">Voir Profil</a>
         <button id="btn-delete-current" class="btn-danger">Rejeter</button>
       </div>
     </div>
 
-    <!-- SETTINGS OVERLAY (Récupéré de la V1) -->
+    <!-- SETTINGS OVERLAY -->
     <div id="settings-overlay" class="settings-overlay hidden">
       <div class="w-header">
         <div class="brand-area">
-          <button
-            id="btn-back-settings"
-            class="icon-btn"
-            style="margin-right: 10px"
-          >
-            ←
-          </button>
+          <button id="btn-back-settings" class="icon-btn">←</button>
           <span class="brand-name">Paramètres</span>
         </div>
-        <div class="actions-area">
-          <button id="btn-close-settings" class="icon-btn" title="Fermer">
-            ×
-          </button>
-        </div>
+        <div class="actions-area"><button id="btn-close-settings" class="icon-btn">×</button></div>
       </div>
-
       <div class="w-body">
-        <p class="settings-header-text">
-          Connectez votre Clé API Google Gemini pour activer l'analyseur.
-        </p>
-        <!-- (Contenu V1 Settings conservé pour compatibilité) -->
+        <p class="settings-header-text">Gestion de la clé API.</p>
         <div class="provider-card active-provider open">
           <div class="provider-header">
-            <div class="header-left">
-              <span class="provider-name">Google Gemini</span>
-            </div>
+            <div class="header-left"><span class="provider-name">Google Gemini</span></div>
+            <div class="header-right"><span id="api-status" class="status-badge">Check</span></div>
           </div>
           <div class="api-config-area" style="display: block">
             <div class="api-input-group">
               <label class="api-label">Clé API</label>
               <div class="api-input-wrapper">
-                <input
-                  id="api-key-input"
-                  type="text"
-                  class="api-input"
-                  placeholder="AIzaSyD..."
-                  autocomplete="off"
-                />
+                <input id="api-key-input" type="text" class="api-input" placeholder="AIza..." autocomplete="off"/>
                 <button id="btn-save-api" class="btn-validate">Valider</button>
               </div>
             </div>

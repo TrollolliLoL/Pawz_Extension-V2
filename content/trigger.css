@@ -17,8 +17,9 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.2s ease;
     z-index: 2147483647;
+    overflow: hidden; /* Pour l'effet de vague/succès */
 }
 
 .pawz-trigger-icon-only:hover {
@@ -31,4 +32,49 @@
     height: 24px;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    transition: all 0.3s ease;
+}
+
+/* --- ETAT SUCCESS (Check Vert) --- */
+.pawz-trigger-icon-only.state-success {
+    background: #10B981 !important; /* Vert Succès */
+    border-color: #059669 !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+}
+
+.pawz-trigger-icon-only.state-success .trigger-icon-img {
+    transform: scale(0); /* Cache le logo */
+    opacity: 0;
+}
+
+/* L'icône Check sera injectée dynamiquement ou gérée via classes, 
+   mais ici on prépare une pseudo-classe pour afficher un check si on veut du pur CSS */
+.pawz-trigger-icon-only.state-success::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+    opacity: 0;
+    animation: scaleIn 0.3s forwards 0.1s;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* --- ETAT ERROR (Shake) --- */
+.pawz-trigger-icon-only.state-error {
+    background: #ef4444 !important;
+    border-color: #b91c1c !important;
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
