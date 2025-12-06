@@ -39,12 +39,358 @@
         setupJobManagerListeners();
         setupAccordionListeners();
         setupNavigationShortcuts();
+        setupTuningListeners();
+        await loadTuningSettings();
         
         console.log('[Sidepanel] Ready.');
     });
 
     // ===================================
-    // NAVIGATION SHORTCUTS
+    // AI TUNING LOGIC (Réglage IA)
+    // ===================================
+
+    const TUNING_PRESETS = {
+        'tech_rec': {
+            mastery: 10, experience: 7, degree: 2, sector: 3, 
+            stability: 5, mission_match: 8, exigence: 8, coherence: 8, deduction: 5
+        },
+        'standard': {
+            mastery: 6, experience: 6, degree: 5, sector: 5, 
+            stability: 5, mission_match: 6, exigence: 5, coherence: 5, deduction: 5
+        },
+        'strict': { // "Élitiste"
+            mastery: 9, experience: 9, degree: 8, sector: 8, 
+            stability: 8, mission_match: 9, exigence: 9, coherence: 10, deduction: 3
+        }
+    };
+
+    let _tuningState = {
+        active_preset: 'tech_rec',
+        custom_presets: [] // Array of { id, name, values: {} }
+    };
+
+    async function loadTuningSettings() {
+        const result = await chrome.storage.local.get('pawz_tuning');
+        if (result.pawz_tuning) {
+            _tuningState = result.pawz_tuning;
+        }
+        
+        // Render Dropdown List
+        renderPresetDropdown();
+
+        // Apply Active Preset
+        applyPresetToUI(_tuningState.active_preset);
+    }
+
+    function renderPresetDropdown() {
+        const list = document.getElementById('preset-list-dropdown');
+        list.innerHTML = '';
+
+        // 1. Standard Presets
+        const standards = [
+            { id: 'tech_rec', name: 'Tech Rec (Défaut)' },
+            { id: 'standard', name: 'Standard (Polyvalent)' },
+            { id: 'strict', name: 'Strict (Élitiste)' }
+        ];
+
+        standards.forEach(p => {
+            const el = createPresetOption(p.id, p.name, false);
+            list.appendChild(el);
+        });
+
+        // 2. Custom Presets
+        if (_tuningState.custom_presets.length > 0) {
+            const separator = document.createElement('div');
+            separator.style.cssText = "height:1px; background:#e5e7eb; margin:4px 0;";
+            list.appendChild(separator);
+
+            _tuningState.custom_presets.forEach(p => {
+                const el = createPresetOption(p.id, p.name, true);
+                list.appendChild(el);
+            });
+        }
+        
+        // 3. Unsaved (Hidden by default, shown if active)
+        const unsavedEl = createPresetOption('custom_unsaved', 'Personnalisé (Non enregistré)', false);
+        unsavedEl.id = 'opt-custom_unsaved';
+        unsavedEl.classList.add('hidden'); // Logic in applyPresetToUI will show it
+        list.appendChild(unsavedEl);
+    }
+
+    function createPresetOption(id, name, isCustom) {
+        const div = document.createElement('div');
+        div.className = 'preset-option';
+        div.dataset.value = id;
+        
+        // Name Area
+        const nameArea = document.createElement('div');
+        nameArea.className = 'preset-name-area';
+        nameArea.innerHTML = `<span>${isCustom ? '👤 ' : (id==='tech_rec'?'⚡ ': (id==='strict'?'🛡️ ':'⚖️ '))}</span> <span class="option-text">${name}</span>`;
+        div.appendChild(nameArea);
+
+        // Actions (Only for Custom)
+        if (isCustom) {
+            const actions = document.createElement('div');
+            actions.className = 'preset-actions hidden'; // Shown on hover via CSS (or JS helper)
+            
+            // Edit Name
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-preset-action edit';
+            editBtn.textContent = '✏️';
+            editBtn.title = "Renommer";
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                renamePreset(id);
+            };
+            
+            // Delete
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-preset-action delete';
+            delBtn.textContent = '✖';
+            delBtn.title = "Supprimer";
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                deletePreset(id);
+            };
+
+            actions.appendChild(editBtn);
+            actions.appendChild(delBtn);
+            div.appendChild(actions);
+            
+            // Show actions on hover (CSS does opacity, but let's ensure display)
+            div.addEventListener('mouseenter', () => actions.classList.remove('hidden'));
+            div.addEventListener('mouseleave', () => actions.classList.add('hidden'));
+        }
+
+        // Click Selection
+        div.addEventListener('click', () => {
+            selectPreset(id);
+        });
+
+        return div;
+    }
+
+    function setupTuningListeners() {
+        // Toggle Card
+        document.getElementById('toggle-tuning-card').addEventListener('click', () => {
+            const content = document.getElementById('tuning-card-content');
+            const chevron = document.getElementById('tuning-chevron');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                // content.style.display = 'block'; // Removed, handled by CSS .hidden
+                chevron.classList.add('open');
+            } else {
+                content.classList.add('hidden');
+                // content.style.display = 'none';
+                chevron.classList.remove('open');
+            }
+        });
+
+        // --- Custom Dropdown Logic ---
+        const trigger = document.getElementById('preset-trigger');
+        const list = document.getElementById('preset-list-dropdown');
+        const saveBtn = document.getElementById('btn-save-preset');
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            list.classList.toggle('hidden');
+            trigger.querySelector('.expand-arrow').classList.toggle('open');
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!trigger.contains(e.target) && !list.contains(e.target)) {
+                list.classList.add('hidden');
+                trigger.querySelector('.expand-arrow').classList.remove('open');
+            }
+        });
+
+        // Slider Changes
+        document.querySelectorAll('.tuning-range').forEach(range => {
+            range.addEventListener('input', (e) => {
+                const key = e.target.id.replace('range-', '');
+                const valDisplay = document.getElementById(`val-${key}`);
+                if (valDisplay) {
+                    valDisplay.textContent = e.target.value;
+                    // Color intensity logic (Blue/Orange)
+                    if (e.target.value >= 8) valDisplay.style.color = '#F97316';
+                    else valDisplay.style.color = '#4E86F0';
+                }
+
+                // Switch to Custom Unsaved
+                if (_tuningState.active_preset !== 'custom_unsaved') {
+                    // Update State
+                    _tuningState.active_preset = 'custom_unsaved';
+                    
+                    // Update UI manually for speed
+                    document.getElementById('current-preset-name').textContent = 'Personnalisé (Non enregistré)';
+                    saveBtn.classList.remove('hidden');
+                    
+                    // Show unsaved option in list
+                    const unsavedOpt = document.getElementById('opt-custom_unsaved');
+                    if (unsavedOpt) {
+                        unsavedOpt.classList.remove('hidden');
+                        // Update selection highlight
+                        document.querySelectorAll('.preset-option').forEach(o => o.classList.remove('selected'));
+                        unsavedOpt.classList.add('selected');
+                    }
+                }
+            });
+            
+            // Save state on change (end of slide)
+            range.addEventListener('change', () => {
+                 saveTuningState(); 
+            });
+        });
+
+        // Save Preset
+        saveBtn.addEventListener('click', async () => {
+             const name = prompt("Nom de votre préréglage :", "Mon Réglage");
+             if (!name) return;
+
+             const newId = 'custom_' + Date.now();
+             const currentValues = getCurrentSliderValues();
+             
+             const newPreset = {
+                 id: newId,
+                 name: name,
+                 values: currentValues
+             };
+
+             _tuningState.custom_presets.push(newPreset);
+             
+             // Re-render
+             renderPresetDropdown();
+             
+             // Select New
+             selectPreset(newId);
+        });
+    }
+
+    function selectPreset(presetId) {
+        _tuningState.active_preset = presetId;
+        applyPresetToUI(presetId);
+        saveTuningState();
+        
+        // Hide dropdown
+        document.getElementById('preset-list-dropdown').classList.add('hidden');
+        document.querySelector('#preset-trigger .expand-arrow').classList.remove('open');
+    }
+
+    async function renamePreset(id) {
+        const preset = _tuningState.custom_presets.find(p => p.id === id);
+        if (!preset) return;
+        
+        const newName = prompt("Nouveau nom :", preset.name);
+        if (newName && newName !== preset.name) {
+            preset.name = newName;
+            await saveTuningState();
+            renderPresetDropdown();
+            // Update trigger text if active
+            if (_tuningState.active_preset === id) {
+                document.getElementById('current-preset-name').textContent = `👤 ${newName}`;
+            }
+        }
+    }
+
+    async function deletePreset(id) {
+        if (!confirm("Supprimer ce préréglage ?")) return;
+        
+        _tuningState.custom_presets = _tuningState.custom_presets.filter(p => p.id !== id);
+        
+        // If active was deleted, fallback to Tech Rec
+        if (_tuningState.active_preset === id) {
+            _tuningState.active_preset = 'tech_rec';
+        }
+        
+        await saveTuningState();
+        renderPresetDropdown();
+        applyPresetToUI(_tuningState.active_preset);
+    }
+
+    function applyPresetToUI(presetId) {
+        let values = {};
+        let name = "Inconnu";
+        let isCustom = false;
+        
+        if (TUNING_PRESETS[presetId]) {
+            values = TUNING_PRESETS[presetId];
+            name = (presetId==='tech_rec'?'Tech Rec (Défaut)': (presetId==='standard'?'Standard (Polyvalent)': 'Strict (Élitiste)'));
+        } else {
+            const custom = _tuningState.custom_presets.find(p => p.id === presetId);
+            if (custom) {
+                values = custom.values;
+                name = `👤 ${custom.name}`;
+                isCustom = true;
+            }
+            else if (presetId === 'custom_unsaved') {
+                if (_tuningState.last_values) values = _tuningState.last_values;
+                else values = TUNING_PRESETS['tech_rec'];
+                name = "Personnalisé (Non enregistré)";
+            }
+        }
+
+        // Apply Slider Values
+        Object.keys(values).forEach(key => {
+            const range = document.getElementById(`range-${key}`);
+            const disp = document.getElementById(`val-${key}`);
+            if (range && disp) {
+                range.value = values[key];
+                disp.textContent = values[key];
+                if (values[key] >= 8) disp.style.color = '#F97316';
+                else disp.style.color = '#4E86F0';
+            }
+        });
+        
+        // Update Trigger Text
+        document.getElementById('current-preset-name').textContent = name;
+        
+        // Highlight Dropdown Option
+        document.querySelectorAll('.preset-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === presetId);
+        });
+        
+        // Manage "Unsaved" Option visibility
+        const unsavedOpt = document.getElementById('opt-custom_unsaved');
+        if (unsavedOpt) {
+            if (presetId === 'custom_unsaved') unsavedOpt.classList.remove('hidden');
+            else unsavedOpt.classList.add('hidden');
+        }
+        
+        // Hide Save Button if not custom_unsaved
+        const saveBtn = document.getElementById('btn-save-preset');
+        if (presetId === 'custom_unsaved') saveBtn.classList.remove('hidden');
+        else saveBtn.classList.add('hidden');
+    }
+
+    function getCurrentSliderValues() {
+        const values = {};
+        document.querySelectorAll('.tuning-range').forEach(r => {
+            const key = r.id.replace('range-', '');
+            values[key] = parseInt(r.value, 10);
+        });
+        return values;
+    }
+
+    async function saveTuningState() {
+        // If unsaved, store current values so we can restore them
+        if (_tuningState.active_preset === 'custom_unsaved') {
+            _tuningState.last_values = getCurrentSliderValues();
+        }
+        
+        // Save state AND explicitly the resolved weights for the background worker
+        await chrome.storage.local.set({ 
+            pawz_tuning: _tuningState,
+            pawz_active_weights: getCurrentSliderValues()
+        });
+    }
+    
+    // Export helper for the Prompt Generator (future step)
+    window.getPawzTuningWeights = function() {
+        return getCurrentSliderValues();
+    };
+
     // ===================================
     function setupNavigationShortcuts() {
         // MOUSE BACK BUTTONS

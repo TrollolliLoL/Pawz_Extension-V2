@@ -279,6 +279,162 @@
           </div> <!-- Fin gemini-card-content -->
         </div>
 
+        <!-- AI TUNING CARD (Réglage IA) -->
+        <div class="provider-card open">
+          <!-- Header -->
+          <div class="provider-header" id="toggle-tuning-card">
+            <div class="header-left">
+              <span class="provider-logo" style="font-size: 20px;">🎚️</span>
+              <div class="provider-name">Réglage de l'IA</div>
+            </div>
+            <div class="header-right">
+              <span class="header-chevron" id="tuning-chevron">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              </span>
+            </div>
+          </div>
+          
+          <!-- Content -->
+          <div id="tuning-card-content">
+            <div class="tuning-container">
+                
+                <!-- Preset Control -->
+                <div class="tuning-top-bar" style="display:flex; gap:10px; align-items:center;">
+                    <!-- Custom Dropdown Trigger -->
+                    <div class="preset-dropdown-container" id="preset-dropdown-container" style="flex:1; position:relative;">
+                        <div class="preset-trigger" id="preset-trigger">
+                            <span id="current-preset-name">Tech Rec (Défaut)</span>
+                            <div class="expand-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </div>
+                        <!-- List (Hidden) -->
+                        <div id="preset-list-dropdown" class="preset-list-dropdown hidden">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                    
+                    <button id="btn-save-preset" class="btn-main primary hidden" style="padding: 6px 12px; font-size: 12px; height: 36px; white-space: nowrap;">+ Enregistrer</button>
+                </div>
+
+                <!-- GROUP 1: COMPÉTENCES -->
+                <div class="tuning-group">
+                    <h4 class="group-title">🎓 Compétences</h4>
+                    <!-- Maîtrise -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Maîtrise Technique</span>
+                            <span class="info-tooltip" data-tooltip="À quel point la maîtrise exacte des outils demandés est-elle critique ? (10 = Si la stack n'est pas exacte, c'est un rejet. 1 = L'IA valorise la capacité d'adaptation).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-mastery" min="1" max="10" value="10">
+                            <span class="slider-value" id="val-mastery">10</span>
+                        </div>
+                    </div>
+                    <!-- Diplôme -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Niveau de Diplôme</span>
+                            <span class="info-tooltip" data-tooltip="Le parcours académique est-il déterminant pour ce poste ? (10 = Diplôme spécifique obligatoire. 1 = Autodidactes bienvenus).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-degree" min="1" max="10" value="2">
+                            <span class="slider-value" id="val-degree">2</span>
+                        </div>
+                    </div>
+                    <!-- Secteur -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Connaissance Secteur</span>
+                            <span class="info-tooltip" data-tooltip="Est-il crucial que le candidat vienne déjà de votre secteur d'activité ? (10 = Expérience secteur indispensable. 1 = Profils venant d'autres industries acceptés).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-sector" min="1" max="10" value="3">
+                            <span class="slider-value" id="val-sector">3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GROUP 2: PARCOURS -->
+                <div class="tuning-group">
+                    <h4 class="group-title">🚀 Parcours</h4>
+                    <!-- Expérience -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Années d'Expérience</span>
+                            <span class="info-tooltip" data-tooltip="Quelle importance accordez-vous à la durée totale d'expérience ? (10 = Durée stricte exigée. 1 = La qualité des projets prime sur le nombre d'années).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-experience" min="1" max="10" value="7">
+                            <span class="slider-value" id="val-experience">7</span>
+                        </div>
+                    </div>
+                    <!-- Stabilité -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Stabilité du Parcours</span>
+                            <span class="info-tooltip" data-tooltip="Comment juger les changements fréquents d'entreprise ? (10 = La fidélité est indispensable. 1 = La diversité des environnements est un atout).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-stability" min="1" max="10" value="5">
+                            <span class="slider-value" id="val-stability">5</span>
+                        </div>
+                    </div>
+                    <!-- Missions -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Corresp. Missions</span>
+                            <span class="info-tooltip" data-tooltip="À quel point les tâches réalisées par le passé doivent coller à votre fiche de poste ? (10 = Doit avoir fait exactement les mêmes tâches. 1 = Compétences transverses acceptées).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-mission_match" min="1" max="10" value="8">
+                            <span class="slider-value" id="val-mission_match">8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GROUP 3: CERVEAU IA -->
+                <div class="tuning-group">
+                    <h4 class="group-title">🧠 Cerveau IA</h4>
+                    <!-- Exigence -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Niveau d'Exigence</span>
+                            <span class="info-tooltip" data-tooltip="Quel niveau de sévérité souhaitez-vous pour la notation ? (10 = Très élitiste, note bas par défaut. 1 = Bienveillant, cherche à donner sa chance).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-exigence" min="1" max="10" value="8">
+                            <span class="slider-value" id="val-exigence">8</span>
+                        </div>
+                    </div>
+                    <!-- Incohérences -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Chasse aux Incohérences</span>
+                            <span class="info-tooltip" data-tooltip="L'IA doit-elle se méfier du contenu du CV ? (10 = Analyse critique type 'enquêteur', traque les trous et les dates. 1 = Confiance au déclaratif).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-coherence" min="1" max="10" value="8">
+                            <span class="slider-value" id="val-coherence">8</span>
+                        </div>
+                    </div>
+                    <!-- Déduction -->
+                    <div class="slider-row-inline">
+                        <div class="slider-info">
+                            <span class="slider-label">Capacité de Déduction</span>
+                            <span class="info-tooltip" data-tooltip="L'IA peut-elle deviner des compétences proches de celles demandées ? (10 = Forte déduction : 'S'il a fait X, il saura faire Y'. 1 = Lecture stricte : Si ce n'est pas écrit, ça ne compte pas).">❓</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="tuning-range blue-cursor" id="range-deduction" min="1" max="10" value="5">
+                            <span class="slider-value" id="val-deduction">5</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+          </div> <!-- Fin tuning-card-content -->
+        </div>
+
         <!-- À PROPOS (Compact) -->
         <div class="about-footer">
           <span>Pawz v2.0</span>

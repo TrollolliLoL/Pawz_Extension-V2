@@ -147,10 +147,14 @@ async function analyzeCandidate(candidate, jobs) {
             return;
         }
 
-        // 3. Appeler l'IA Gemini
-        const result = await GeminiClient.analyzeCandidate(payload, job);
+        // 3. Récupérer les poids de réglage (AI Tuning)
+        const tuningData = await chrome.storage.local.get('pawz_active_weights');
+        const weights = tuningData.pawz_active_weights;
 
-        // 4. Vérifier que le candidat existe toujours (pas supprimé pendant l'analyse)
+        // 4. Appeler l'IA Gemini avec les poids
+        const result = await GeminiClient.analyzeCandidate(payload, job, weights);
+
+        // 5. Vérifier que le candidat existe toujours (pas supprimé pendant l'analyse)
         const stillExists = await checkCandidateExists(candidate.id);
         if (!stillExists) {
             console.log(`[Queue] Candidat ${candidate.id} supprimé pendant l'analyse, abandon`);
