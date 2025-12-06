@@ -38,9 +38,66 @@
         setupSettingsListeners();
         setupJobManagerListeners();
         setupAccordionListeners();
+        setupNavigationShortcuts();
         
         console.log('[Sidepanel] Ready.');
     });
+
+    // ===================================
+    // NAVIGATION SHORTCUTS
+    // ===================================
+    function setupNavigationShortcuts() {
+        // MOUSE BACK BUTTONS
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 3 || e.button === 4) { // 3=Back, 4=Forward
+                e.preventDefault();
+                handleBackNavigation();
+            }
+        });
+
+        // KEYBOARD BACK SHORTCUTS
+        window.addEventListener('keydown', (e) => {
+            // Alt + Left Arrow
+            if (e.altKey && e.key === 'ArrowLeft') {
+                e.preventDefault();
+                handleBackNavigation();
+            }
+            // Backspace (if not in input)
+            if (e.key === 'Backspace') {
+                const tag = document.activeElement.tagName;
+                const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable;
+                if (!isInput) {
+                    e.preventDefault();
+                    handleBackNavigation();
+                }
+            }
+        });
+    }
+
+    function handleBackNavigation() {
+        console.log("[Nav] Back shortcut triggered");
+
+        // 1. DETAIL OVERLAY
+        const detailOverlay = document.getElementById('detail-overlay');
+        if (detailOverlay && !detailOverlay.classList.contains('hidden')) {
+            document.getElementById('btn-close-detail')?.click();
+            return;
+        }
+
+        // 2. SETTINGS OVERLAY
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay && !settingsOverlay.classList.contains('hidden')) {
+            document.getElementById('btn-back-settings')?.click();
+            return;
+        }
+
+        // 3. JOB EDIT VIEW (Back to List)
+        const jobEditView = document.getElementById('job-edit-view');
+        if (jobEditView && !jobEditView.classList.contains('hidden')) {
+            document.getElementById('btn-back-jobs')?.click();
+            return;
+        }
+    }
 
     // ===================================
     // REACTIVITY
