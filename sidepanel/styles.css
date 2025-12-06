@@ -835,21 +835,32 @@ body {
   color: var(--color-primary);
 }
 
-.edit-tools {
+.label-row {
   display: flex;
-  gap: 6px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
-.tool-btn {
-  background: #f3f4f6;
+
+.label-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-btn {
+  background: transparent;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 4px 8px;
+  border-radius: 4px;
+  padding: 2px 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
+  color: #6b7280;
   transition: all 0.2s;
 }
-.tool-btn:hover {
-  background: #e5e7eb;
+.mini-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
 }
 
 .job-title-input {

@@ -47,10 +47,6 @@
         <div id="job-edit-view" class="hidden">
             <div class="edit-nav">
                 <button id="btn-back-jobs" class="back-link">← Retour</button>
-                <div class="edit-tools">
-                    <button id="btn-undo-form" class="tool-btn" title="Annuler les modifications">↩️</button>
-                    <button id="btn-clear-form" class="tool-btn" title="Vider le formulaire">🗑️</button>
-                </div>
             </div>
 
             <!-- BLOC FORMULAIRE -->
@@ -59,7 +55,13 @@
                     <input type="text" id="job-title-input" class="job-title-input" placeholder="Titre du poste...">
                 </div>
                 <div class="input-group">
-                  <label class="input-label">📝 Description / Brief</label>
+                  <div class="label-row">
+                    <label class="input-label">📝 Fiche de Poste</label>
+                    <div class="label-tools">
+                        <button id="btn-undo-form" class="mini-btn" title="Rétablir la version enregistrée">↩</button>
+                        <button id="btn-clear-form" class="mini-btn" title="Vider le contenu">🔄</button>
+                    </div>
+                  </div>
                   <textarea id="brief-text" class="styled-textarea" placeholder="Collez la description du poste ici..."></textarea>
                 </div>
                 <div class="input-group">

@@ -172,10 +172,8 @@
         }
     }
 
-    // --- Clear : Vider le formulaire ---
+    // --- Clear : Vider le formulaire (sans confirmation) ---
     function clearForm() {
-        if (!confirm("Vider tout le contenu du formulaire ?")) return;
-        
         document.getElementById('job-title-input').value = '';
         document.getElementById('brief-text').value = '';
         _mustCriteria = [];
