@@ -383,14 +383,17 @@ body {
   font-weight: bold;
 }
 
-/* Detail Footer */
+/* Detail Footer - HIDDEN BY REQUEST */
 .detail-footer {
+  display: none;
+}
+/*.detail-footer {
   padding: 16px;
   border-top: 1px solid #f3f4f6;
   background: white;
   display: flex;
   gap: 10px;
-}
+}*/
 .btn-secondary {
   flex: 1;
   text-align: center;
