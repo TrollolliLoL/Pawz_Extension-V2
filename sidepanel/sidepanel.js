@@ -20,6 +20,10 @@
     // Form Data
     let _mustCriteria = [];
     let _niceCriteria = [];
+    
+    // Form State (dirty tracking)
+    let _formDirty = false;
+    let _originalFormData = null;
 
     // ===================================
     // INIT
@@ -175,6 +179,16 @@
         _mustCriteria = job.criteria?.must_have ? [...job.criteria.must_have] : [];
         _niceCriteria = job.criteria?.nice_to_have ? [...job.criteria.nice_to_have] : [];
         renderTags();
+        
+        // Stocker l'état original pour détecter les changements
+        _originalFormData = {
+            title: job.title || '',
+            brief: job.raw_brief || '',
+            must: [..._mustCriteria],
+            nice: [..._niceCriteria]
+        };
+        _formDirty = false;
+        updateSaveButton();
     }
 
     function updateUnderstandBlock(job) {
@@ -318,16 +332,73 @@
         const btnAddMust = document.getElementById('btn-add-must');
         const btnAddNice = document.getElementById('btn-add-nice');
         const btnSave = document.getElementById('btn-save-search');
+        const titleInput = document.getElementById('job-title-input');
+        const briefTextarea = document.getElementById('brief-text');
 
-        const addMust = () => addTag(mustInput, _mustCriteria, 'must');
-        const addNice = () => addTag(niceInput, _niceCriteria, 'nice');
+        const addMust = () => { addTag(mustInput, _mustCriteria, 'must'); checkFormDirty(); };
+        const addNice = () => { addTag(niceInput, _niceCriteria, 'nice'); checkFormDirty(); };
 
         btnAddMust?.addEventListener('click', addMust);
         mustInput?.addEventListener('keypress', e => { if (e.key === 'Enter') addMust(); });
         btnAddNice?.addEventListener('click', addNice);
         niceInput?.addEventListener('keypress', e => { if (e.key === 'Enter') addNice(); });
 
-        btnSave?.addEventListener('click', saveCurrentJob);
+        // Détecter les changements sur les champs texte
+        titleInput?.addEventListener('input', checkFormDirty);
+        briefTextarea?.addEventListener('input', checkFormDirty);
+
+        btnSave?.addEventListener('click', handleSaveOrActivate);
+    }
+
+    function checkFormDirty() {
+        if (_editingJobId === 'new' || !_originalFormData) {
+            _formDirty = true;
+            updateSaveButton();
+            return;
+        }
+        
+        const currentTitle = document.getElementById('job-title-input').value;
+        const currentBrief = document.getElementById('brief-text').value;
+        
+        const titleChanged = currentTitle !== _originalFormData.title;
+        const briefChanged = currentBrief !== _originalFormData.brief;
+        const mustChanged = JSON.stringify(_mustCriteria) !== JSON.stringify(_originalFormData.must);
+        const niceChanged = JSON.stringify(_niceCriteria) !== JSON.stringify(_originalFormData.nice);
+        
+        _formDirty = titleChanged || briefChanged || mustChanged || niceChanged;
+        updateSaveButton();
+    }
+
+    function updateSaveButton() {
+        const btnSave = document.getElementById('btn-save-search');
+        if (!btnSave) return;
+        
+        const job = _allJobs.find(j => j.id === _editingJobId);
+        const isActive = job?.active || false;
+        
+        if (_editingJobId === 'new') {
+            btnSave.textContent = 'Enregistrer';
+            btnSave.className = 'btn-main primary';
+        } else if (_formDirty) {
+            btnSave.textContent = 'Enregistrer';
+            btnSave.className = 'btn-main primary';
+        } else if (!isActive) {
+            btnSave.textContent = 'Activer cette recherche';
+            btnSave.className = 'btn-main activate';
+        } else {
+            btnSave.textContent = '✓ Recherche active';
+            btnSave.className = 'btn-main disabled';
+        }
+    }
+
+    async function handleSaveOrActivate() {
+        if (_formDirty || _editingJobId === 'new') {
+            await saveCurrentJob();
+        } else {
+            // Pas de changements -> Activer la recherche
+            await activateJob(_editingJobId);
+            updateSaveButton();
+        }
     }
 
     function addTag(input, list, type) {

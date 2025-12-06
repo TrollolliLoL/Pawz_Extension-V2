@@ -619,6 +619,14 @@ body {
 .btn-main.primary {
   background: var(--color-orange);
 }
+.btn-main.activate {
+  background: var(--color-green);
+}
+.btn-main.disabled {
+  background: #e5e7eb;
+  color: #059669;
+  cursor: default;
+}
 .btn-main:hover {
   opacity: 0.9;
 }
