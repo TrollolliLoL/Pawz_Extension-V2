@@ -208,11 +208,14 @@
             return;
         }
 
-        // Tri: Actif d'abord, puis récents
+        // Tri: Actif d'abord, puis les autres du plus récent au plus ancien
         const sortedJobs = [..._allJobs].sort((a, b) => {
-            if (a.active) return -1;
-            if (b.active) return 1;
-            return (b.created_at || 0) - (a.created_at || 0);
+            if (a.active && !b.active) return -1;  // Active en premier
+            if (b.active && !a.active) return 1;
+            // Pour les non-actifs, trier par date (récent d'abord)
+            const dateA = a.created_at || 0;
+            const dateB = b.created_at || 0;
+            return dateB - dateA;  // Plus grand (récent) en premier
         });
 
         sortedJobs.forEach(job => {
@@ -365,8 +368,10 @@
         const brief = document.getElementById('brief-text').value;
 
         let jobs = [..._allJobs];
+        let wasNew = false;
 
         if (_editingJobId === 'new') {
+            wasNew = true;
             const newId = 'job_' + Date.now();
             const newJob = {
                 id: newId,
@@ -379,9 +384,17 @@
             jobs.push(newJob);
             _editingJobId = newId;
             
-            // Après création, on re-ouvre l'éditeur pour montrer les sections extra
             await chrome.storage.local.set({ pawz_jobs: jobs });
-            openJobEditor(newId);
+            
+            // Afficher les sections extra sans réinitialiser le formulaire
+            document.getElementById('job-extra-sections').classList.remove('hidden');
+            // Mettre à jour _allJobs local
+            _allJobs = jobs;
+            const job = jobs.find(j => j.id === newId);
+            if (job) {
+                renderJobCandidates(newId);
+                updateUnderstandBlock(job);
+            }
         } else {
             const idx = jobs.findIndex(j => j.id === _editingJobId);
             if (idx !== -1) {
