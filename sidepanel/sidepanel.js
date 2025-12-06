@@ -431,6 +431,7 @@
                 e.stopPropagation();
                 list.splice(parseInt(e.target.dataset.idx), 1);
                 renderTags();
+                checkFormDirty(); // Détecter la suppression
             });
         });
     }
