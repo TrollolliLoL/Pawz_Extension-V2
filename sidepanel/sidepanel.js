@@ -37,6 +37,7 @@
         setupTabsListeners();
         setupSettingsListeners();
         setupJobManagerListeners();
+        setupAccordionListeners();
         
         console.log('[Sidepanel] Ready.');
     });
@@ -375,6 +376,9 @@
                 <div class="card-right"><button class="action-btn delete-mini" data-id="${c.id}" title="Supprimer">🗑️</button></div>
             `;
             
+            // Click -> Open Detail
+            card.addEventListener('click', () => openCandidateDetail(c.id));
+            
             // Delete listener
             card.querySelector('.delete-mini').addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -673,80 +677,70 @@
     }
 
     function populateDetailOverlay(candidate) {
-        const contentDiv = document.querySelector('.analysis-content');
-        if (!contentDiv) return;
-
-        // 1. Parse Data
+        // 1. Data Preparation
         const score = candidate.score || 0;
         const verdict = candidate.verdict || 'Analysé';
-        const name = candidate.candidate_name || 'Candidat inconnu';
-        // Try to finding active job title from analysis or candidate data
-        const currentJob = candidate.current_position || 'Poste actuel non détecté';
+        const name = candidate.candidate_name || 'Candidat';
+        const currentJob = candidate.current_position || 'Poste inconnu';
+        const initials = name.slice(0, 2).toUpperCase();
 
-        // Helper for lists
-        const makeList = (items, type) => {
-            if (!items || items.length === 0) return '<li>Aucune donnée détectée.</li>';
-            return items.map(i => `<li>${i}</li>`).join('');
+        // 2. Populate Header
+        document.getElementById('detail-candidate-name').textContent = name;
+        document.getElementById('detail-candidate-title').textContent = currentJob;
+        document.getElementById('detail-initials').textContent = initials;
+        
+        document.getElementById('detail-score').textContent = score + '%';
+        const verdictEl = document.getElementById('detail-verdict');
+        verdictEl.textContent = verdict;
+        
+        // Verdict styling based on score/status (Simple logic)
+        verdictEl.className = 'verdict-badge'; // Reset
+        if (score >= 70) verdictEl.classList.add('verdict-match');
+        else if (score >= 40) verdictEl.classList.add('verdict-maybe');
+        else verdictEl.classList.add('verdict-nomatch');
+
+        // 3. Populate Lists (Access static ULs)
+        const strengthsList = document.getElementById('detail-strengths');
+        const warningsList = document.getElementById('detail-warnings');
+        const summaryText = document.getElementById('detail-summary');
+
+        // Helper
+        const fillList = (ul, items) => {
+            if (!ul) return;
+            ul.innerHTML = '';
+            if (!items || items.length === 0) {
+                ul.innerHTML = '<li>Aucune donnée.</li>';
+                return;
+            }
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                ul.appendChild(li);
+            });
         };
 
-        // Ensure arrays (sometimes stored as JSON string or array)
+        // Parse JSON if needed
         let strengths = candidate.strengths || [];
         let weaknesses = candidate.weaknesses || [];
         if (typeof strengths === 'string') try { strengths = JSON.parse(strengths); } catch(e) {}
         if (typeof weaknesses === 'string') try { weaknesses = JSON.parse(weaknesses); } catch(e) {}
+
+        fillList(strengthsList, strengths);
+        fillList(warningsList, weaknesses);
         
-        // If empty arrays but status is completed, show empty placeholders
-        if (candidate.status !== 'completed') {
-            strengths = ['Analyse non terminée.'];
-            weaknesses = ['Analyse non terminée.'];
-        }
+        summaryText.textContent = candidate.summary || "Aucun résumé disponible.";
+    }
 
-        const summary = candidate.summary || "Aucun résumé disponible pour ce candidat.";
-
-        // 2. Build HTML (V1 Structure)
-        contentDiv.innerHTML = `
-            <div class="score-header">
-                <h1 class="score-display">${score}%</h1>
-                <span class="verdict-badge">${verdict}</span>
-            </div>
-
-            <div class="candidate-identity">
-                <h2 class="candidate-name-large">${name}</h2>
-                <div class="candidate-job-large">${currentJob}</div>
-            </div>
-
-            <div class="analysis-accordions">
-                <!-- Points Forts -->
-                <details class="accordion acc-strengths open">
-                    <summary>Points Forts</summary>
-                    <div class="accordion-content">
-                        <ul class="list-check">
-                            ${makeList(strengths, 'check')}
-                        </ul>
-                    </div>
-                </details>
-
-                <!-- Points de Vigilance -->
-                <details class="accordion acc-weaknesses open">
-                    <summary>Points de Vigilance</summary>
-                    <div class="accordion-content">
-                        <ul class="list-warn">
-                            ${makeList(weaknesses, 'warn')}
-                        </ul>
-                    </div>
-                </details>
-
-                <!-- Résumé -->
-                <details class="accordion acc-summary open">
-                    <summary>Résumé Détaillé</summary>
-                    <div class="accordion-content">
-                        <p>${summary.replace(/\n/g, '<br>')}</p>
-                    </div>
-                </details>
-            </div>
-            
-            <div style="height: 40px;"></div> <!-- Spacer -->
-        `;
+    function setupAccordionListeners() {
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const accordion = header.parentElement;
+                accordion.classList.toggle('open');
+                
+                // Rotate chevron (optional if CSS handles it via .open)
+                // CSS in Step 567 handled rotation using .open class on parent
+            });
+        });
     }
 
     // ===================================

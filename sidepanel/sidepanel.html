@@ -149,34 +149,62 @@
     <div id="detail-overlay" class="detail-panel hidden">
       <div class="detail-nav">
         <button id="btn-close-detail" class="back-btn">← Retour</button>
-        <div class="nav-arrows">
-            <button id="btn-prev-candidate" class="nav-arrow-btn">⬆</button>
-            <button id="btn-next-candidate" class="nav-arrow-btn">⬇</button>
-        </div>
       </div>
       <div class="analysis-content">
-        <div class="score-header">
-          <h1 id="detail-score" class="score-display">--%</h1>
-          <span id="detail-verdict" class="verdict-badge">En attente</span>
+        <div class="analysis-scroll-area">
+            <!-- 1. EN-TÊTE PROFIL -->
+            <div class="header-profile" style="text-align:center; margin-bottom:20px;">
+                <div id="detail-initials" class="avatar-large" style="width:60px; height:60px; border-radius:50%; background:#f3f4f6; color:#374151; font-size:24px; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;">--</div>
+                <h3 id="detail-candidate-name" style="margin:0; font-size:18px; font-weight:700; color:#111;">Nom Candidat</h3>
+                <p id="detail-candidate-title" style="margin:4px 0 0 0; font-size:13px; color:#6b7280;">Titre détecté</p>
+            </div>
+            <!-- 2. SCORE & VERDICT -->
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div id="detail-score" class="score-display" style="font-size:48px; font-weight:800; color:#111; line-height:1;">--%</div>
+                <div id="detail-verdict" class="verdict-badge" style="display:inline-block; margin-top:8px; padding:4px 12px; border-radius:20px; background:#f3f4f6; color:#6b7280; font-size:13px; font-weight:600;">En attente</div>
+            </div>
+            <!-- 3. ACCORDÉON : POINTS FORTS -->
+            <div class="accordion open">
+                <div class="accordion-header">
+                    <span>✅ Points Forts</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content" style="display:block;">
+                    <ul id="detail-strengths" class="list-check" style="margin: 0; padding-left: 20px;">
+                        <li>Analyse en cours...</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 4. ACCORDÉON : VIGILANCE -->
+            <div class="accordion open">
+                <div class="accordion-header">
+                    <span style="color: #F97316;">⚠️ Points de Vigilance</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content" style="display:block;">
+                    <ul id="detail-warnings" class="list-warn" style="margin: 0; padding-left: 20px;">
+                        <li>Aucune donnée.</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 5. ACCORDÉON : RÉSUMÉ -->
+            <div class="accordion open">
+                <div class="accordion-header">
+                    <span>🤖 Résumé Détaillé</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content" style="display:block;">
+                    <p id="detail-summary" style="white-space: pre-line; margin:0; font-size:13px; line-height:1.5; color:#4b5563;">Le résumé apparaîtra ici.</p>
+                </div>
+            </div>
+            <div style="height:40px;"></div>
         </div>
-        <h2 id="detail-name" class="candidate-name-detail">Nom</h2>
-        <p id="detail-title" class="candidate-title-detail">Titre</p>
-        <div class="accordion open">
-          <div class="accordion-header"><span>✅ Points Forts</span><div class="header-chevron">▼</div></div>
-          <div class="accordion-content"><ul id="detail-strengths" class="list-check"></ul></div>
-        </div>
-        <div class="accordion">
-          <div class="accordion-header"><span>⚠️ Vigilance</span><div class="header-chevron">▼</div></div>
-          <div class="accordion-content"><ul id="detail-warnings" class="list-warn"></ul></div>
-        </div>
-        <div class="accordion">
-          <div class="accordion-header"><span>🤖 Résumé</span><div class="header-chevron">▼</div></div>
-          <div class="accordion-content"><p id="detail-summary"></p></div>
-        </div>
-      </div>
-      <div class="detail-footer">
-        <a id="btn-open-linkedin" href="#" target="_blank" class="btn-secondary">Voir Profil</a>
-        <button id="btn-delete-current" class="btn-danger">Rejeter</button>
       </div>
     </div>
 
