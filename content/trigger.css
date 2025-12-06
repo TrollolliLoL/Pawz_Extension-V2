@@ -1,0 +1,43 @@
+/* Golden Master - Trigger CSS */
+:host {
+    all: initial; /* Reset héritage */
+}
+
+.pawz-trigger-icon-only {
+    width: 60px; /* Ajusté un peu plus petit que 80px pour desktop, ou 80px selon specs ? Specs dit 80px. */
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, #00509d 0%, #003f7f 100%);
+    border: 2px solid #003566;
+    box-shadow:
+        0 10px 25px rgba(0, 45, 90, 0.4),
+        inset 0 3px 5px rgba(255, 255, 255, 0.25),
+        inset 0 -3px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 2147483647;
+}
+
+/* Specs say 80px but that's huge. Let's stick to specs if requested strictly, 
+   but 60px is standard FAB size. 
+   "CONSIGNE : Respecte le Design System au pixel près." 
+   Ok, I will use the values from specs. */
+.pawz-trigger-icon-only {
+    width: 80px;
+    height: 80px;
+}
+
+.pawz-trigger-icon-only:hover {
+    transform: scale(1.1);
+    box-shadow: 0 15px 30px rgba(0, 45, 90, 0.5);
+}
+
+.trigger-icon-img {
+    width: 40px; /* Ajusté pour ratio */
+    height: 40px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}

@@ -19,11 +19,11 @@ Ce document centralise les tickets pour les Agents 1 (Backend) et 2 (Frontend).
 
 ### 🎨 FRONTEND CORE (Agent 2)
 
-- [ ] **[PANEL]** Adapter `/sidepanel/sidepanel.html` (Structure Master-Detail V2, nettoyage du HTML V1)
-- [ ] **[STYLE]** Nettoyer `/sidepanel/styles.css` (Intégrer les variables CSS du Golden Master, supprimer CSS obsolète)
-- [ ] **[LOGIC]** Implémenter `/sidepanel/sidepanel.js` (Boucle de rendu réactive `storage.onChanged`)
-- [ ] **[INJECT]** Implémenter `/content/content.js` (Injection Shadow DOM de la pastille)
-- [ ] **[UI]** Créer `/content/trigger.css` (Style "Golden Master" de la pastille flottante)
+- [x] **[PANEL]** Adapter `/sidepanel/sidepanel.html` (Structure Master-Detail V2, nettoyage du HTML V1)
+- [x] **[STYLE]** Nettoyer `/sidepanel/styles.css` (Intégrer les variables CSS du Golden Master, supprimer CSS obsolète)
+- [x] **[LOGIC]** Implémenter `/sidepanel/sidepanel.js` (Boucle de rendu réactive `storage.onChanged`)
+- [x] **[INJECT]** Implémenter `/content/content.js` (Injection Shadow DOM de la pastille)
+- [x] **[UI]** Créer `/content/trigger.css` (Style "Golden Master" de la pastille flottante)
 
 ---
 
