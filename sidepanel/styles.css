@@ -1354,28 +1354,28 @@ body {
 
 /* --- AI Tuning Refinements --- */
 
-/* 1. Custom Preset Dropdown */
+/* 1. Custom Preset Dropdown (Matches Model Selector) */
 .preset-dropdown-container {
+  /* position relative needed */
   position: relative;
-  /* flex: 1 already set inline */
 }
 
 .preset-trigger {
+  padding: 10px 12px;
+  background: #f3f4f6;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 6px 12px;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 6px; /* Rounded for standalone look within panel */
+  transition: background 0.2s;
   font-size: 13px;
   color: #374151;
-  cursor: pointer;
-  height: 36px;
-  transition: border-color 0.2s;
+  font-weight: 500;
+  border: 1px solid transparent; /* To match height/feel */
 }
 .preset-trigger:hover {
-  border-color: #9ca3af;
+  background: #e5e7eb;
 }
 
 .preset-list-dropdown {
@@ -1383,14 +1383,13 @@ body {
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   z-index: 50;
-  overflow: hidden;
-  max-height: 200px;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 6px 6px;
+  max-height: 250px;
   overflow-y: auto;
 }
 .preset-list-dropdown.hidden {
@@ -1398,24 +1397,25 @@ body {
 }
 
 .preset-option {
+  padding: 10px 12px;
   display: flex;
+  justify-content: space-between; /* To fit actions */
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
   font-size: 13px;
   color: #374151;
-  cursor: pointer;
   border-bottom: 1px solid #f3f4f6;
 }
 .preset-option:last-child {
   border-bottom: none;
 }
 .preset-option:hover {
-  background: #f9fafb;
+  background: #f3f4f6;
 }
 .preset-option.selected {
-  background: #eff6ff; /* Light Blue */
-  color: #1d4ed8;
+  background: #eff6ff;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -1458,8 +1458,9 @@ body {
 .slider-row-inline {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* Default spread */
   margin-bottom: 12px;
+  padding-right: 8px; /* Slight padding from edge */
 }
 
 .slider-info {
@@ -1467,7 +1468,7 @@ body {
   align-items: center;
   gap: 6px;
   flex: 1;
-  min-width: 0; /* Text truncation if needed */
+  min-width: 0;
 }
 
 .slider-label {
@@ -1479,8 +1480,9 @@ body {
 .slider-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 140px; 
+  gap: 8px;
+  width: 130px; /* Reduced specific width to pull it safely from edge */
+  margin-right: 4px; /* Extra safety margin from card edge */
 }
 
 .slider-value {
