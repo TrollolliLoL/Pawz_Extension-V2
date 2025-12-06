@@ -109,7 +109,31 @@
         });
 
         document.getElementById('btn-back-jobs').addEventListener('click', () => {
-            switchSearchView('LIST');
+            tryNavigateBack();
+        });
+
+        // Boutons Undo et Clear
+        document.getElementById('btn-undo-form')?.addEventListener('click', undoFormChanges);
+        document.getElementById('btn-clear-form')?.addEventListener('click', clearForm);
+
+        // Navigation souris (bouton précédent) et clavier (Backspace)
+        document.addEventListener('mouseup', (e) => {
+            // Bouton 3 = bouton "précédent" de la souris
+            if (e.button === 3 && _searchViewMode === 'EDIT') {
+                e.preventDefault();
+                tryNavigateBack();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            // Backspace quand pas dans un input
+            if (e.key === 'Backspace' && _searchViewMode === 'EDIT') {
+                const tag = document.activeElement?.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                    e.preventDefault();
+                    tryNavigateBack();
+                }
+            }
         });
 
         setupFormListeners();
@@ -118,10 +142,46 @@
         const btnUnderstand = document.getElementById('btn-understand');
         if (btnUnderstand) {
             btnUnderstand.addEventListener('click', () => {
-                // TODO: Phase 3 - Appeler l'IA
                 alert("Cette fonctionnalité sera disponible dans la prochaine mise à jour !");
             });
         }
+    }
+
+    // --- Navigation avec confirmation ---
+    function tryNavigateBack() {
+        if (_formDirty) {
+            const choice = confirm("Vous avez des modifications non enregistrées.\n\nCliquez OK pour les sauvegarder, ou Annuler pour les ignorer.");
+            if (choice) {
+                saveCurrentJob().then(() => switchSearchView('LIST'));
+                return;
+            }
+        }
+        switchSearchView('LIST');
+    }
+
+    // --- Undo : Recharger la version enregistrée ---
+    function undoFormChanges() {
+        if (_editingJobId === 'new') {
+            // Pour un nouveau, on vide tout
+            clearForm();
+            return;
+        }
+        const job = _allJobs.find(j => j.id === _editingJobId);
+        if (job) {
+            fillJobForm(job);
+        }
+    }
+
+    // --- Clear : Vider le formulaire ---
+    function clearForm() {
+        if (!confirm("Vider tout le contenu du formulaire ?")) return;
+        
+        document.getElementById('job-title-input').value = '';
+        document.getElementById('brief-text').value = '';
+        _mustCriteria = [];
+        _niceCriteria = [];
+        renderTags();
+        checkFormDirty();
     }
 
     // --- NAVIGATION HELPERS ---

@@ -835,6 +835,23 @@ body {
   color: var(--color-primary);
 }
 
+.edit-tools {
+  display: flex;
+  gap: 6px;
+}
+.tool-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.tool-btn:hover {
+  background: #e5e7eb;
+}
+
 .job-title-input {
   width: 100%;
   border: none;
