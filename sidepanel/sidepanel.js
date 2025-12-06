@@ -248,12 +248,14 @@
         const doneCount = jobCandidates.filter(c => c.status === 'completed').length;
 
         card.innerHTML = `
-            <div class="job-card-header">
-                <span class="job-title">${job.title || 'Sans titre'}</span>
-            </div>
-            <div class="job-stats-row">
-                <span>⏳ ${pendingCount} en attente</span>
-                <span>✅ ${doneCount} analysés</span>
+            <div class="job-card-top">
+                <div class="job-card-header">
+                    <span class="job-title">${job.title || 'Sans titre'}</span>
+                </div>
+                <div class="job-stats-row">
+                    <span>⏳ ${pendingCount} en attente</span>
+                    <span>✅ ${doneCount} analysés</span>
+                </div>
             </div>
             <div class="job-actions-row">
                 ${job.active 
@@ -264,9 +266,8 @@
             </div>
         `;
         
-        // Interaction: Clic sur le titre -> Édition
-        card.querySelector('.job-title').addEventListener('click', (e) => {
-            e.stopPropagation();
+        // Interaction: Clic sur la partie haute -> Édition
+        card.querySelector('.job-card-top').addEventListener('click', () => {
             openJobEditor(job.id);
         });
 
@@ -474,7 +475,18 @@
                 jobs[idx].criteria = { must_have: [..._mustCriteria], nice_to_have: [..._niceCriteria] };
             }
             await chrome.storage.local.set({ pawz_jobs: jobs });
+            _allJobs = jobs;
         }
+        
+        // Mettre à jour l'état original (plus de diff après save)
+        _originalFormData = {
+            title: title,
+            brief: brief,
+            must: [..._mustCriteria],
+            nice: [..._niceCriteria]
+        };
+        _formDirty = false;
+        updateSaveButton();
         
         // Feedback
         const btnSave = document.getElementById('btn-save-search');

@@ -739,6 +739,15 @@ body {
   align-items: center;
   margin-bottom: 10px;
 }
+
+/* Zone cliquable (titre + stats) */
+.job-card-top {
+  cursor: pointer;
+  padding-bottom: 10px;
+}
+.job-card-top:hover .job-title {
+  color: var(--color-primary);
+}
 .job-title {
   font-weight: 700;
   font-size: 14px;
