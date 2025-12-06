@@ -372,7 +372,19 @@
                     <div class="name">${name}</div>
                     <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '%' : c.status}</div>
                 </div>
+                <div class="card-right"><button class="action-btn delete-mini" data-id="${c.id}" title="Supprimer">🗑️</button></div>
             `;
+            
+            // Delete listener
+            card.querySelector('.delete-mini').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if(confirm('Supprimer ce candidat ?')) {
+                    const cands = _allCandidates.filter(x => x.id !== c.id);
+                    await chrome.storage.local.set({ pawz_candidates: cands });
+                    // The storage change will trigger a re-render
+                }
+            });
+            
             container.appendChild(card);
         });
 
@@ -584,6 +596,9 @@
     // ===================================
     // CANDIDATES LIST (Main View)
     // ===================================
+    // ===================================
+    // CANDIDATES LIST (Main View)
+    // ===================================
     async function renderCandidatesList() {
         const container = document.getElementById('candidates-list');
         const countPending = document.getElementById('count-pending');
@@ -591,14 +606,8 @@
         
         container.innerHTML = '';
         
-        if (!_activeJobId) {
-            container.innerHTML = '<div class="empty-state"><p>Aucune recherche active.</p><small>Activez une recherche dans l\'onglet précédent.</small></div>';
-            if (countPending) countPending.textContent = '0';
-            if (countDone) countDone.textContent = '0';
-            return;
-        }
-        
-        const candidates = _allCandidates.filter(c => c.job_id === _activeJobId);
+        // Show ALL candidates (Global View)
+        const candidates = _allCandidates;
         
         const pending = candidates.filter(c => ['pending','processing'].includes(c.status)).length;
         const done = candidates.filter(c => c.status === 'completed').length;
@@ -606,29 +615,138 @@
         if (countDone) countDone.textContent = done;
         
         if (candidates.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Liste vide.</p><small>Capturez des profils avec la pastille Pawz !</small></div>';
+            container.innerHTML = '<div class="empty-state"><p>Aucune analyse.</p><small>Activez une recherche et capturez des profils !</small></div>';
             return;
         }
 
-        candidates.forEach(c => {
+        // Sort by most recent
+        const sorted = [...candidates].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        sorted.forEach(c => {
             const card = document.createElement('div');
             card.className = `candidate-card status-${c.status}`;
             const name = c.candidate_name || 'Candidat';
+            // Find job title
+            const job = _allJobs.find(j => j.id === c.job_id);
+            const jobTitle = job ? job.title : 'Job inconnu';
+
             card.innerHTML = `
                 <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
                 <div class="card-center">
                     <div class="name">${name}</div>
+                    <div class="job-subtitle">${jobTitle}</div>
                     <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '% - ' + (c.verdict || '') : c.status}</div>
                 </div>
-                <div class="card-right"><button class="action-btn delete" data-id="${c.id}">🗑️</button></div>
+                <div class="card-right"><button class="action-btn delete" data-id="${c.id}" title="Supprimer">🗑️</button></div>
             `;
+            
+            // Click -> Open Detail
+            card.addEventListener('click', () => openCandidateDetail(c.id));
+
+            // Delete
             card.querySelector('.delete').addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const cands = _allCandidates.filter(x => x.id !== c.id);
-                await chrome.storage.local.set({ pawz_candidates: cands });
+                if(confirm('Supprimer ce candidat ?')) {
+                    const cands = _allCandidates.filter(x => x.id !== c.id);
+                    await chrome.storage.local.set({ pawz_candidates: cands });
+                }
             });
             container.appendChild(card);
         });
+    }
+
+    /**
+     * Ouvre l'overlay de détail candidat (V1 Style)
+     */
+    function openCandidateDetail(candidateId) {
+        const candidate = _allCandidates.find(c => c.id === candidateId);
+        if (!candidate) return;
+
+        const overlay = document.getElementById('detail-overlay');
+        
+        // Populate
+        populateDetailOverlay(candidate);
+        
+        // Show
+        overlay.classList.remove('hidden');
+        requestAnimationFrame(() => overlay.classList.add('visible'));
+    }
+
+    function populateDetailOverlay(candidate) {
+        const contentDiv = document.querySelector('.analysis-content');
+        if (!contentDiv) return;
+
+        // 1. Parse Data
+        const score = candidate.score || 0;
+        const verdict = candidate.verdict || 'Analysé';
+        const name = candidate.candidate_name || 'Candidat inconnu';
+        // Try to finding active job title from analysis or candidate data
+        const currentJob = candidate.current_position || 'Poste actuel non détecté';
+
+        // Helper for lists
+        const makeList = (items, type) => {
+            if (!items || items.length === 0) return '<li>Aucune donnée détectée.</li>';
+            return items.map(i => `<li>${i}</li>`).join('');
+        };
+
+        // Ensure arrays (sometimes stored as JSON string or array)
+        let strengths = candidate.strengths || [];
+        let weaknesses = candidate.weaknesses || [];
+        if (typeof strengths === 'string') try { strengths = JSON.parse(strengths); } catch(e) {}
+        if (typeof weaknesses === 'string') try { weaknesses = JSON.parse(weaknesses); } catch(e) {}
+        
+        // If empty arrays but status is completed, show empty placeholders
+        if (candidate.status !== 'completed') {
+            strengths = ['Analyse non terminée.'];
+            weaknesses = ['Analyse non terminée.'];
+        }
+
+        const summary = candidate.summary || "Aucun résumé disponible pour ce candidat.";
+
+        // 2. Build HTML (V1 Structure)
+        contentDiv.innerHTML = `
+            <div class="score-header">
+                <h1 class="score-display">${score}%</h1>
+                <span class="verdict-badge">${verdict}</span>
+            </div>
+
+            <div class="candidate-identity">
+                <h2 class="candidate-name-large">${name}</h2>
+                <div class="candidate-job-large">${currentJob}</div>
+            </div>
+
+            <div class="analysis-accordions">
+                <!-- Points Forts -->
+                <details class="accordion acc-strengths open">
+                    <summary>Points Forts</summary>
+                    <div class="accordion-content">
+                        <ul class="list-check">
+                            ${makeList(strengths, 'check')}
+                        </ul>
+                    </div>
+                </details>
+
+                <!-- Points de Vigilance -->
+                <details class="accordion acc-weaknesses open">
+                    <summary>Points de Vigilance</summary>
+                    <div class="accordion-content">
+                        <ul class="list-warn">
+                            ${makeList(weaknesses, 'warn')}
+                        </ul>
+                    </div>
+                </details>
+
+                <!-- Résumé -->
+                <details class="accordion acc-summary open">
+                    <summary>Résumé Détaillé</summary>
+                    <div class="accordion-content">
+                        <p>${summary.replace(/\n/g, '<br>')}</p>
+                    </div>
+                </details>
+            </div>
+            
+            <div style="height: 40px;"></div> <!-- Spacer -->
+        `;
     }
 
     // ===================================

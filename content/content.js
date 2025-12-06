@@ -93,15 +93,9 @@ function createMiniSidebar() {
     _miniSidebar = document.createElement('div');
     _miniSidebar.className = 'pawz-mini-sidebar hidden';
     _miniSidebar.innerHTML = `
-        <div class="mini-sidebar-header">
-            <button class="btn-close-mini" title="Fermer">×</button>
-        </div>
         <div class="mini-sidebar-buttons"></div>
     `;
     _shadowRoot.appendChild(_miniSidebar);
-
-    // Close button
-    _miniSidebar.querySelector('.btn-close-mini').addEventListener('click', closeMiniSidebar);
 }
 
 function closeMiniSidebar() {
@@ -113,6 +107,14 @@ function openMiniSidebar() {
     updateMiniSidebarButtons();
     _miniSidebar.classList.remove('hidden');
     requestAnimationFrame(() => _miniSidebar.classList.add('open'));
+}
+
+function toggleMiniSidebar() {
+    if (_miniSidebar.classList.contains('hidden')) {
+        openMiniSidebar();
+    } else {
+        closeMiniSidebar();
+    }
 }
 
 // === SETUP EVENTS ===
@@ -149,6 +151,7 @@ function handleMouseDown(e) {
                 _dragOverlay.className = 'pawz-drag-overlay';
                 _shadowRoot.appendChild(_dragOverlay);
                 _triggerBtn.classList.add('dragging');
+                closeMiniSidebar(); // Close on drag start
             }
 
             const newY = moveEvent.clientY;
@@ -173,8 +176,7 @@ function handleMouseDown(e) {
             _isDragging = false;
         } else {
             // It was a click
-            console.log("[Pawz] Opening mini-sidebar...");
-            openMiniSidebar();
+            toggleMiniSidebar();
         }
         
         _dragStartPos = null;
@@ -240,10 +242,16 @@ async function updateMiniSidebarButtons() {
 async function getCurrentCircumstances() {
     try {
         const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_settings']);
+        console.log("[Pawz] Storage Data:", data); // DEBUG
+
         const jobs = data.pawz_jobs || [];
         const settings = data.pawz_settings || {};
 
-        const activeJob = jobs.find(j => j.is_active);
+        const activeJob = jobs.find(j => j.active === true);
+        
+        if (!activeJob) console.warn("[Pawz] No active job found (jobs:", jobs.length, ")");
+        if (!settings.api_key) console.warn("[Pawz] No API key configured");
+
         if (!activeJob || !settings.api_key) return null;
 
         return {
@@ -256,6 +264,19 @@ async function getCurrentCircumstances() {
         return null;
     }
 }
+
+// === STORAGE LISTENER ===
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+        if (changes.pawz_jobs || changes.pawz_settings) {
+            console.log("[Pawz] Storage changed, updating trigger UI...");
+            // Si la sidebar est ouverte, on rafraichit
+            if (_miniSidebar && _miniSidebar.classList.contains('open')) {
+                updateMiniSidebarButtons();
+            }
+        }
+    }
+});
 
 async function getAnalysesForUrl(url) {
     try {
