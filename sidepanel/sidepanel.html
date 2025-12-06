@@ -11,7 +11,6 @@
     <header class="w-header">
       <div class="brand-area">
         <img src="../assets/logo.svg" alt="Pawz" class="logo-icon" />
-        <!-- Le sélecteur de Job disparaît ici car la gestion se fait dans l'onglet Recherche -->
         <span class="brand-name">Pawz</span>
       </div>
       <div class="actions-area">
@@ -36,73 +35,88 @@
         <!-- SOUS-VUE 1 : LISTE DES JOBS -->
         <div id="jobs-list-view">
             <div class="jobs-list-header">
-                <h3>Mes Mandats</h3>
-                <button id="btn-create-job" class="btn-create">+ Nouveau</button>
+                <h3>Mes recherches</h3>
+                <button id="btn-create-job" class="btn-create">+ Nouvelle</button>
             </div>
-
             <div id="jobs-container" class="jobs-scroll-area">
-                <!-- Les cartes seront injectées ici par JS -->
-                <!-- Exemple Mock pour le dev CSS (sera vidé par JS) -->
-                <div class="job-card mock-card">
-                    <div class="job-card-header">
-                        <span class="job-title">Développeur Frontend</span>
-                        <div class="job-status active-badge">Actif</div>
-                    </div>
-                    <div class="job-stats">
-                        <span>👥 12 Candidats</span>
-                        <span>📅 06/12/2025</span>
-                    </div>
-                    <div class="job-actions">
-                        <button class="btn-action">✏️ Modifier</button>
-                        <button class="btn-action">🗑️</button>
-                    </div>
-                </div>
+                <!-- Injecté par JS -->
             </div>
         </div>
 
-        <!-- SOUS-VUE 2 : ÉDITION/DETAIL JOB -->
+        <!-- SOUS-VUE 2 : ÉDITION JOB -->
         <div id="job-edit-view" class="hidden">
             <div class="edit-nav">
-                <button id="btn-back-jobs" class="back-link">← Retour à la liste</button>
-                <div class="edit-actions">
-                     <button id="btn-activate-job" class="btn-activate" title="Rendre ce mandat actif pour la capture">Activer</button>
+                <button id="btn-back-jobs" class="back-link">← Retour</button>
+            </div>
+
+            <!-- BLOC FORMULAIRE -->
+            <div id="job-form-section">
+                <div class="input-group">
+                    <input type="text" id="job-title-input" class="job-title-input" placeholder="Titre du poste...">
+                </div>
+                <div class="input-group">
+                  <label class="input-label">📝 Description / Brief</label>
+                  <textarea id="brief-text" class="styled-textarea" placeholder="Collez la description du poste ici..."></textarea>
+                </div>
+                <div class="input-group">
+                  <label class="input-label" style="color: #F97316;">⛔ Critères Obligatoires</label>
+                  <div class="skill-adder">
+                    <input id="must-input" type="text" class="skill-input" placeholder="Ajouter...">
+                    <button id="btn-add-must" class="add-btn">+</button>
+                  </div>
+                  <div id="must-tags" class="skill-tags"></div>
+                </div>
+                <div class="input-group">
+                  <label class="input-label" style="color: #10b981;">✨ Les Plus</label>
+                  <div class="skill-adder">
+                    <input id="nice-input" type="text" class="skill-input" placeholder="Ajouter...">
+                    <button id="btn-add-nice" class="add-btn">+</button>
+                  </div>
+                  <div id="nice-tags" class="skill-tags"></div>
+                </div>
+                <div class="save-container">
+                  <button id="btn-save-search" class="btn-main primary">Enregistrer</button>
                 </div>
             </div>
 
-            <!-- Titre du poste éditable -->
-            <div class="input-group">
-                <input type="text" id="job-title-input" class="job-title-input" placeholder="Titre du poste (ex: CTO)...">
-            </div>
+            <!-- SECTIONS ADDITIONNELLES (Édition seulement) -->
+            <div id="job-extra-sections" class="hidden">
+                
+                <!-- BLOC COMPRENDRE LE BESOIN -->
+                <div class="section-divider"></div>
+                <div id="understand-block" class="understand-card">
+                    <div class="understand-header">
+                        <span class="understand-icon">🧠</span>
+                        <span class="understand-title">Comprendre le besoin</span>
+                    </div>
+                    <!-- État 1: Pas encore analysé -->
+                    <div id="understand-empty" class="understand-cta">
+                        <p>L'IA peut analyser votre fiche de poste pour mieux scorer les candidats.</p>
+                        <button id="btn-understand" class="btn-understand">Analyser ma fiche de poste</button>
+                    </div>
+                    <!-- État 2: Analyse disponible (Accordion) -->
+                    <div id="understand-result" class="understand-result hidden">
+                        <div class="accordion open">
+                            <div class="accordion-header">
+                                <span>📋 Résumé de l'analyse</span>
+                                <div class="header-chevron">▼</div>
+                            </div>
+                            <div class="accordion-content">
+                                <p id="understand-summary">Analyse générée par l'IA...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Formulaire Description -->
-            <div class="input-group">
-              <div class="label-row">
-                <label class="input-label">📝 Description / Brief</label>
-              </div>
-              <textarea id="brief-text" class="styled-textarea" placeholder="Collez la description du poste ici..."></textarea>
-            </div>
+                <!-- BLOC ANALYSES ASSOCIÉES -->
+                <div class="section-divider"></div>
+                <div id="job-candidates-section">
+                    <h4 class="section-title">Analyses associées</h4>
+                    <div id="job-candidates-list" class="candidates-container mini">
+                        <!-- Injecté par JS -->
+                    </div>
+                </div>
 
-            <div class="input-group">
-              <label class="input-label" style="color: #F97316;">⛔ Critères Obligatoires</label>
-              <div class="skill-adder">
-                <input id="must-input" type="text" class="skill-input" placeholder="Ajouter critère...">
-                <button id="btn-add-must" class="add-btn">+</button>
-              </div>
-              <div id="must-tags" class="skill-tags"></div>
-            </div>
-
-            <div class="input-group" style="margin-top: 15px;">
-              <label class="input-label" style="color: #10b981;">✨ Les Plus (Bonus)</label>
-              <div class="skill-adder">
-                <input id="nice-input" type="text" class="skill-input" placeholder="Ajouter bonus...">
-                <button id="btn-add-nice" class="add-btn">+</button>
-              </div>
-              <div id="nice-tags" class="skill-tags"></div>
-            </div>
-
-            <div class="save-container">
-              <button id="btn-save-search" class="btn-main primary">Enregistrer les modifications</button>
-              <div id="save-badge" class="validation-badge"><span>✓</span> Sauvé</div>
             </div>
         </div>
       </div>
@@ -111,25 +125,21 @@
       <!-- VUE ONGLET : ANALYSE (Liste Candidats)       -->
       <!-- ============================================ -->
       <div id="view-analysis" class="hidden">
-        <!-- Bannière "Job Actif" pour rappel -->
         <div id="active-job-banner" class="active-job-banner hidden">
-            <span>🔴 En cours : <b id="banner-job-title">Aucun</b></span>
+            <span>🔴 Job actif : <b id="banner-job-title">Aucun</b></span>
         </div>
-
         <div class="queue-stats">
           <span class="stat-badge">⏳ <span id="count-pending">0</span></span>
           <span class="stat-badge">✅ <span id="count-done">0</span></span>
         </div>
         <div id="candidates-list" class="candidates-container">
-          <div class="empty-state">
-            <p>Aucun candidat.</p>
-          </div>
+          <div class="empty-state"><p>Aucun candidat.</p></div>
         </div>
       </div>
 
     </div>
 
-    <!-- DETAIL OVERLAY -->
+    <!-- DETAIL OVERLAY (Candidat) -->
     <div id="detail-overlay" class="detail-panel hidden">
       <div class="detail-nav">
         <button id="btn-close-detail" class="back-btn">← Retour</button>
@@ -174,7 +184,7 @@
         <div class="actions-area"><button id="btn-close-settings" class="icon-btn">×</button></div>
       </div>
       <div class="w-body">
-        <p class="settings-header-text">Gestion de la clé API.</p>
+        <p class="settings-header-text">Gestion de la clé API Gemini.</p>
         <div class="provider-card active-provider open">
           <div class="provider-header">
             <div class="header-left"><span class="provider-name">Google Gemini</span></div>

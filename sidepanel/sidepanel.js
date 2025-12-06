@@ -1,6 +1,6 @@
 /**
- * PAWZ V2 - Sidepanel Logic -- REFACTORED PHASE 2.1
- * UI Façade : Navigation Master-Detail (Jobs) + Analyse
+ * PAWZ V2 - Sidepanel Logic -- PHASE 2.1 REFINED
+ * UI Façade : Navigation Master-Detail (Jobs)
  */
 
 (function() {
@@ -10,12 +10,14 @@
     // STATE
     // ===================================
     let _activeJobId = null;
-    let _editingJobId = null; // Job en cours d'édition (Peut être différent de l'actif)
+    let _editingJobId = null;
+    let _allJobs = [];
+    let _allCandidates = [];
     
     // UI State
     let _searchViewMode = 'LIST'; // 'LIST' | 'EDIT'
     
-    // Form Data Cache
+    // Form Data
     let _mustCriteria = [];
     let _niceCriteria = [];
 
@@ -23,14 +25,14 @@
     // INIT
     // ===================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log('[Sidepanel] Init Phase 2.1 UI Facade...');
+        console.log('[Sidepanel] Init Phase 2.1 Refined...');
         
         await loadSettings();
-        await refreshAll();
+        await refreshData();
 
         setupTabsListeners();
         setupSettingsListeners();
-        setupJobManagerListeners(); // Nouvelle logique navigation
+        setupJobManagerListeners();
         
         console.log('[Sidepanel] Ready.');
     });
@@ -41,36 +43,31 @@
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area !== 'local') return;
 
-        if (changes.pawz_jobs) {
-            refreshAll();
-        }
-        if (changes.pawz_candidates) {
-            renderCandidatesList();
+        if (changes.pawz_jobs || changes.pawz_candidates) {
+            refreshData();
         }
         if (changes.pawz_settings) {
             loadSettings();
         }
     });
 
-    async function refreshAll() {
-        const data = await chrome.storage.local.get('pawz_jobs');
-        const jobs = data.pawz_jobs || [];
-        const activeJob = jobs.find(j => j.active);
+    async function refreshData() {
+        const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_candidates']);
+        _allJobs = data.pawz_jobs || [];
+        _allCandidates = data.pawz_candidates || [];
+        
+        const activeJob = _allJobs.find(j => j.active);
         _activeJobId = activeJob ? activeJob.id : null;
         
         // Rafraîchir la vue en cours
         if (_searchViewMode === 'LIST') {
-            renderJobsList(jobs);
-        } else {
-            // Si on édite un job, on met à jour le formulaire au cas où
-            // Sauf si c'est un nouveau job pas encore sauvé
-            if (_editingJobId && _editingJobId !== 'new') {
-                const jobToEdit = jobs.find(j => j.id === _editingJobId);
-                if (jobToEdit) fillJobForm(jobToEdit);
-            }
+            renderJobsList();
+        } else if (_editingJobId && _editingJobId !== 'new') {
+            // Si on édite un job existant, on peut refresh certaines parties
+            renderJobCandidates(_editingJobId);
         }
 
-        renderCandidatesList(); // Toujours rafraîchir l'analyse en arrière-plan
+        renderCandidatesList();
         updateActiveBanner(activeJob);
     }
 
@@ -99,34 +96,28 @@
     }
 
     // ===================================
-    // JOB MANAGER LOGIC (NOUVEAU)
+    // JOB MANAGER LOGIC
     // ===================================
     
     function setupJobManagerListeners() {
-        // Bouton "+ Nouveau" (Liste)
         document.getElementById('btn-create-job').addEventListener('click', () => {
             openJobEditor('new');
         });
 
-        // Bouton "Retour" (Edit)
         document.getElementById('btn-back-jobs').addEventListener('click', () => {
             switchSearchView('LIST');
         });
 
-        // Bouton "Activer" (Edit)
-        const btnActivate = document.getElementById('btn-activate-job');
-        if (btnActivate) {
-            btnActivate.addEventListener('click', async () => {
-                if (_editingJobId && _editingJobId !== 'new') {
-                    await activateJob(_editingJobId);
-                    btnActivate.classList.add('active');
-                    btnActivate.textContent = 'Actif';
-                }
+        setupFormListeners();
+
+        // Bouton "Analyser ma fiche de poste"
+        const btnUnderstand = document.getElementById('btn-understand');
+        if (btnUnderstand) {
+            btnUnderstand.addEventListener('click', () => {
+                // TODO: Phase 3 - Appeler l'IA
+                alert("Cette fonctionnalité sera disponible dans la prochaine mise à jour !");
             });
         }
-
-        // Logic d'édition du formulaire (Tags, Save)
-        setupFormListeners();
     }
 
     // --- NAVIGATION HELPERS ---
@@ -138,8 +129,8 @@
         if (mode === 'LIST') {
             listView.classList.remove('hidden');
             editView.classList.add('hidden');
-            // Re-render list to be fresh
-            chrome.storage.local.get('pawz_jobs').then(d => renderJobsList(d.pawz_jobs || []));
+            _editingJobId = null;
+            renderJobsList();
         } else {
             listView.classList.add('hidden');
             editView.classList.remove('hidden');
@@ -150,100 +141,174 @@
         _editingJobId = jobId;
         switchSearchView('EDIT');
         
+        const extraSections = document.getElementById('job-extra-sections');
+        const titleInput = document.getElementById('job-title-input');
+        const briefTextarea = document.getElementById('brief-text');
+        
         // Reset Form
-        document.getElementById('job-title-input').value = '';
-        document.getElementById('brief-text').value = '';
+        titleInput.value = '';
+        briefTextarea.value = '';
         _mustCriteria = [];
         _niceCriteria = [];
-        
-        const btnActivate = document.getElementById('btn-activate-job');
-        btnActivate.classList.remove('active');
-        btnActivate.textContent = 'Activer ce mandat';
+        renderTags();
 
         if (jobId === 'new') {
-            document.getElementById('job-title-input').value = '';
-            document.getElementById('job-title-input').placeholder = 'Titre du nouveau poste...';
-            btnActivate.style.display = 'none'; // Pas d'activation avant save
-            renderTags();
+            // Nouveau Job : Cacher les sections extra
+            extraSections.classList.add('hidden');
+            titleInput.placeholder = 'Titre de la nouvelle recherche...';
         } else {
-            // Load Job Data
-            chrome.storage.local.get('pawz_jobs').then(data => {
-                const job = (data.pawz_jobs || []).find(j => j.id === jobId);
-                if (job) fillJobForm(job);
-            });
-            btnActivate.style.display = 'block';
+            // Édition : Afficher les sections extra
+            extraSections.classList.remove('hidden');
+            
+            const job = _allJobs.find(j => j.id === jobId);
+            if (job) {
+                fillJobForm(job);
+                renderJobCandidates(jobId);
+                updateUnderstandBlock(job);
+            }
         }
     }
 
     function fillJobForm(job) {
-        document.getElementById('job-title-input').value = job.title;
+        document.getElementById('job-title-input').value = job.title || '';
         document.getElementById('brief-text').value = job.raw_brief || '';
-        _mustCriteria = job.criteria?.must_have || [];
-        _niceCriteria = job.criteria?.nice_to_have || [];
+        _mustCriteria = job.criteria?.must_have ? [...job.criteria.must_have] : [];
+        _niceCriteria = job.criteria?.nice_to_have ? [...job.criteria.nice_to_have] : [];
         renderTags();
+    }
 
-        const btnActivate = document.getElementById('btn-activate-job');
-        if (job.active) {
-            btnActivate.classList.add('active');
-            btnActivate.textContent = 'Actif en cours';
+    function updateUnderstandBlock(job) {
+        const emptyState = document.getElementById('understand-empty');
+        const resultState = document.getElementById('understand-result');
+        const summaryEl = document.getElementById('understand-summary');
+
+        if (job.ai_summary) {
+            // L'analyse existe déjà
+            emptyState.classList.add('hidden');
+            resultState.classList.remove('hidden');
+            summaryEl.textContent = job.ai_summary;
         } else {
-            btnActivate.classList.remove('active');
-            btnActivate.textContent = 'Activer ce mandat';
+            // Pas encore analysé
+            emptyState.classList.remove('hidden');
+            resultState.classList.add('hidden');
         }
     }
 
-    // --- RENDER JOBS LIST ---
-    function renderJobsList(jobs) {
+    // --- RENDER JOBS LIST (REFINED) ---
+    function renderJobsList() {
         const container = document.getElementById('jobs-container');
         container.innerHTML = '';
 
-        if (jobs.length === 0) {
+        if (_allJobs.length === 0) {
             container.innerHTML = `
                 <div class="empty-state" style="margin-top:20px">
-                    <p>Aucun mandat.</p>
-                    <small>Créez votre première recherche ci-dessus.</small>
+                    <p>Aucune recherche.</p>
+                    <small>Créez votre première recherche avec le bouton ci-dessus.</small>
                 </div>`;
             return;
         }
 
         // Tri: Actif d'abord, puis récents
-        const sortedJobs = [...jobs].sort((a, b) => {
+        const sortedJobs = [..._allJobs].sort((a, b) => {
             if (a.active) return -1;
             if (b.active) return 1;
-            return b.created_at - a.created_at;
+            return (b.created_at || 0) - (a.created_at || 0);
         });
 
         sortedJobs.forEach(job => {
-            const card = document.createElement('div');
-            card.className = `job-card ${job.active ? 'is-active' : ''}`;
-            
-            const dateStr = new Date(job.created_at).toLocaleDateString('fr-FR', {
-                day: '2-digit', month: '2-digit'
-            });
-
-            card.innerHTML = `
-                <div class="job-card-header">
-                    <span class="job-title">${job.title}</span>
-                    <div class="job-status ${job.active ? 'active-badge' : 'inactive-badge'}">
-                        ${job.active ? 'Actif' : 'Inactif'}
-                    </div>
-                </div>
-                <div class="job-stats">
-                    <span>📅 ${dateStr}</span>
-                     <!-- TODO: Ajouter nombre de candidats via une jointure simple si besoin -->
-                </div>
-            `;
-            
-            // Interaction: Open Detail
-            card.addEventListener('click', () => {
-                 openJobEditor(job.id);
-            });
-
+            const card = createJobCard(job);
             container.appendChild(card);
         });
     }
 
-    // --- FORM LOGIC (Copied & Adapted) ---
+    function createJobCard(job) {
+        const card = document.createElement('div');
+        card.className = `job-card ${job.active ? 'is-active' : ''}`;
+        
+        // Compter les candidats pour ce job
+        const jobCandidates = _allCandidates.filter(c => c.job_id === job.id);
+        const pendingCount = jobCandidates.filter(c => ['pending', 'processing'].includes(c.status)).length;
+        const doneCount = jobCandidates.filter(c => c.status === 'completed').length;
+
+        card.innerHTML = `
+            <div class="job-card-header">
+                <span class="job-title">${job.title || 'Sans titre'}</span>
+            </div>
+            <div class="job-stats-row">
+                <span>⏳ ${pendingCount} en attente</span>
+                <span>✅ ${doneCount} analysés</span>
+            </div>
+            <div class="job-actions-row">
+                ${job.active 
+                    ? `<span class="active-label">✓ Recherche active</span>`
+                    : `<button class="btn-activate-card" data-job-id="${job.id}">Activer cette recherche</button>`
+                }
+                <button class="btn-delete-job" data-job-id="${job.id}" title="Supprimer">🗑️</button>
+            </div>
+        `;
+        
+        // Interaction: Clic sur le titre -> Édition
+        card.querySelector('.job-title').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openJobEditor(job.id);
+        });
+
+        // Interaction: Activer
+        const activateBtn = card.querySelector('.btn-activate-card');
+        if (activateBtn) {
+            activateBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await activateJob(job.id);
+            });
+        }
+
+        // Interaction: Supprimer
+        card.querySelector('.btn-delete-job').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm(`Supprimer "${job.title}" et tous ses candidats ?`)) {
+                await deleteJob(job.id);
+            }
+        });
+
+        return card;
+    }
+
+    // --- RENDER CANDIDATES IN JOB DETAIL (MINI LIST) ---
+    function renderJobCandidates(jobId) {
+        const container = document.getElementById('job-candidates-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const candidates = _allCandidates.filter(c => c.job_id === jobId);
+
+        if (candidates.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="margin:10px 0"><small>Aucun candidat analysé.</small></div>';
+            return;
+        }
+
+        candidates.slice(0, 5).forEach(c => { // Max 5 pour la mini-liste
+            const card = document.createElement('div');
+            card.className = `candidate-card status-${c.status}`;
+            const name = c.candidate_name || 'Candidat';
+            card.innerHTML = `
+                <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
+                <div class="card-center">
+                    <div class="name">${name}</div>
+                    <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '%' : c.status}</div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        if (candidates.length > 5) {
+            const more = document.createElement('small');
+            more.style.cssText = 'display:block; text-align:center; color:#6b7280; margin-top:8px;';
+            more.textContent = `+ ${candidates.length - 5} autres`;
+            container.appendChild(more);
+        }
+    }
+
+    // --- FORM LOGIC ---
     function setupFormListeners() {
         const mustInput = document.getElementById('must-input');
         const niceInput = document.getElementById('nice-input');
@@ -251,21 +316,15 @@
         const btnAddNice = document.getElementById('btn-add-nice');
         const btnSave = document.getElementById('btn-save-search');
 
-        // Tags Logic
         const addMust = () => addTag(mustInput, _mustCriteria, 'must');
         const addNice = () => addTag(niceInput, _niceCriteria, 'nice');
 
-        if (btnAddMust) btnAddMust.addEventListener('click', addMust);
-        if (mustInput) mustInput.addEventListener('keypress', e => { if (e.key === 'Enter') addMust(); });
-        if (btnAddNice) btnAddNice.addEventListener('click', addNice);
-        if (niceInput) niceInput.addEventListener('keypress', e => { if (e.key === 'Enter') addNice(); });
+        btnAddMust?.addEventListener('click', addMust);
+        mustInput?.addEventListener('keypress', e => { if (e.key === 'Enter') addMust(); });
+        btnAddNice?.addEventListener('click', addNice);
+        niceInput?.addEventListener('keypress', e => { if (e.key === 'Enter') addNice(); });
 
-        // Save Logic
-        if (btnSave) {
-            btnSave.addEventListener('click', async () => {
-                 await saveCurrentJob();
-            });
-        }
+        btnSave?.addEventListener('click', saveCurrentJob);
     }
 
     function addTag(input, list, type) {
@@ -302,14 +361,12 @@
     }
 
     async function saveCurrentJob() {
-        const title = document.getElementById('job-title-input').value.trim() || 'Nouveau Poste';
+        const title = document.getElementById('job-title-input').value.trim() || 'Nouvelle Recherche';
         const brief = document.getElementById('brief-text').value;
 
-        const data = await chrome.storage.local.get('pawz_jobs');
-        let jobs = data.pawz_jobs || [];
+        let jobs = [..._allJobs];
 
         if (_editingJobId === 'new') {
-            // Create
             const newId = 'job_' + Date.now();
             const newJob = {
                 id: newId,
@@ -317,39 +374,43 @@
                 raw_brief: brief,
                 criteria: { must_have: [..._mustCriteria], nice_to_have: [..._niceCriteria] },
                 created_at: Date.now(),
-                active: jobs.length === 0 // Actif si premier
+                active: jobs.length === 0
             };
             jobs.push(newJob);
-            _editingJobId = newId; 
+            _editingJobId = newId;
+            
+            // Après création, on re-ouvre l'éditeur pour montrer les sections extra
+            await chrome.storage.local.set({ pawz_jobs: jobs });
+            openJobEditor(newId);
         } else {
-            // Update
             const idx = jobs.findIndex(j => j.id === _editingJobId);
             if (idx !== -1) {
                 jobs[idx].title = title;
                 jobs[idx].raw_brief = brief;
                 jobs[idx].criteria = { must_have: [..._mustCriteria], nice_to_have: [..._niceCriteria] };
             }
+            await chrome.storage.local.set({ pawz_jobs: jobs });
         }
-
-        await chrome.storage.local.set({ pawz_jobs: jobs });
         
-        // UI Feedback
+        // Feedback
         const btnSave = document.getElementById('btn-save-search');
         const prevText = btnSave.textContent;
         btnSave.textContent = '✓ Sauvegardé';
         setTimeout(() => btnSave.textContent = prevText, 1500);
-        
-        // Show Activate button if it was hidden
-        document.getElementById('btn-activate-job').style.display = 'block';
     }
 
     async function activateJob(jobId) {
-        const data = await chrome.storage.local.get('pawz_jobs');
-        const jobs = (data.pawz_jobs || []).map(j => ({
+        const jobs = _allJobs.map(j => ({
             ...j, 
             active: (j.id === jobId)
         }));
         await chrome.storage.local.set({ pawz_jobs: jobs });
+    }
+
+    async function deleteJob(jobId) {
+        const jobs = _allJobs.filter(j => j.id !== jobId);
+        const candidates = _allCandidates.filter(c => c.job_id !== jobId);
+        await chrome.storage.local.set({ pawz_jobs: jobs, pawz_candidates: candidates });
     }
 
     // ===================================
@@ -366,47 +427,57 @@
     }
 
     // ===================================
-    // CANDIDATES LIST (Legacy kept logic)
+    // CANDIDATES LIST (Main View)
     // ===================================
     async function renderCandidatesList() {
-        // (Logique existante de tri et rendu...)
-        // Simplifié ici par soucis de place, mais même logique qu'avant
-        const data = await chrome.storage.local.get(['pawz_candidates', 'pawz_jobs']);
-        const allCandidates = data.pawz_candidates || [];
-        const activeJobId = _activeJobId;
         const container = document.getElementById('candidates-list');
         const countPending = document.getElementById('count-pending');
         const countDone = document.getElementById('count-done');
         
         container.innerHTML = '';
         
-        if (!activeJobId) {
-            container.innerHTML = '<div class="empty-state"><p>Aucun job actif.</p></div>';
+        if (!_activeJobId) {
+            container.innerHTML = '<div class="empty-state"><p>Aucune recherche active.</p><small>Activez une recherche dans l\'onglet précédent.</small></div>';
+            if (countPending) countPending.textContent = '0';
+            if (countDone) countDone.textContent = '0';
             return;
         }
         
-        const candidates = allCandidates.filter(c => c.job_id === activeJobId);
-        // Stats
-        if (countPending) countPending.innerText = candidates.filter(c => ['pending','processing'].includes(c.status)).length;
-        if (countDone) countDone.innerText = candidates.filter(c => c.status === 'completed').length;
+        const candidates = _allCandidates.filter(c => c.job_id === _activeJobId);
+        
+        const pending = candidates.filter(c => ['pending','processing'].includes(c.status)).length;
+        const done = candidates.filter(c => c.status === 'completed').length;
+        if (countPending) countPending.textContent = pending;
+        if (countDone) countDone.textContent = done;
         
         if (candidates.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Liste vide.</p><small>Analysez des profils !</small></div>';
+            container.innerHTML = '<div class="empty-state"><p>Liste vide.</p><small>Capturez des profils avec la pastille Pawz !</small></div>';
             return;
         }
 
         candidates.forEach(c => {
-             // Utilisation d'un helper simple pour recréer la carte
-             const card = document.createElement('div');
-             card.className = `candidate-card status-${c.status}`;
-             card.innerHTML = `<div class="card-left"><div class="avatar">${(c.candidate_name||"C").slice(0,2)}</div></div>
-                               <div class="card-center"><div class="name">${c.candidate_name}</div></div>`;
-             container.appendChild(card);
+            const card = document.createElement('div');
+            card.className = `candidate-card status-${c.status}`;
+            const name = c.candidate_name || 'Candidat';
+            card.innerHTML = `
+                <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
+                <div class="card-center">
+                    <div class="name">${name}</div>
+                    <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '% - ' + (c.verdict || '') : c.status}</div>
+                </div>
+                <div class="card-right"><button class="action-btn delete" data-id="${c.id}">🗑️</button></div>
+            `;
+            card.querySelector('.delete').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const cands = _allCandidates.filter(x => x.id !== c.id);
+                await chrome.storage.local.set({ pawz_candidates: cands });
+            });
+            container.appendChild(card);
         });
     }
 
     // ===================================
-    // SETTINGS (Simple Facade)
+    // SETTINGS
     // ===================================
     async function loadSettings() {
         const data = await chrome.storage.local.get('pawz_settings');
@@ -414,29 +485,36 @@
         const badge = document.getElementById('api-status');
         if (badge) {
             if (settings.api_key) {
-                 badge.classList.add('connected');
-                 badge.textContent = 'Connecté';
+                badge.classList.add('connected');
+                badge.textContent = 'Connecté';
             } else {
-                 badge.classList.remove('connected');
-                 badge.textContent = 'Non Configuré';
+                badge.classList.remove('connected');
+                badge.textContent = 'Non Configuré';
             }
         }
     }
 
     function setupSettingsListeners() {
-        // Toggle Settings Overlay logic...
         document.getElementById('btn-settings').addEventListener('click', () => {
             document.getElementById('settings-overlay').classList.remove('hidden');
         });
         document.getElementById('btn-close-settings').addEventListener('click', () => {
             document.getElementById('settings-overlay').classList.add('hidden');
         });
+        document.getElementById('btn-back-settings')?.addEventListener('click', () => {
+            document.getElementById('settings-overlay').classList.add('hidden');
+        });
         document.getElementById('btn-save-api').addEventListener('click', async () => {
-             const key = document.getElementById('api-key-input').value;
-             if(key) {
-                 await chrome.storage.local.set({ pawz_settings: { api_key: key }});
-                 alert('Clé enregistrée !');
-             }
+            const key = document.getElementById('api-key-input').value.trim();
+            if(key) {
+                const data = await chrome.storage.local.get('pawz_settings');
+                const settings = data.pawz_settings || {};
+                settings.api_key = key;
+                await chrome.storage.local.set({ pawz_settings: settings });
+                document.getElementById('api-key-input').value = '';
+                loadSettings();
+                alert('Clé API enregistrée !');
+            }
         });
     }
 

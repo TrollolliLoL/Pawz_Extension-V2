@@ -707,58 +707,95 @@ body {
   padding-bottom: 20px;
 }
 
-/* Job Card */
+/* Job Card - REFINED */
 .job-card {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px;
-  cursor: pointer;
+  border-radius: 10px;
+  padding: 14px;
   transition: all 0.2s;
   position: relative;
 }
 .job-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .job-card.is-active {
   border: 1px solid var(--color-green);
-  background: #f0fdf4;
+  background: linear-gradient(to right, #f0fdf4, white);
 }
 
 .job-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
+  align-items: center;
+  margin-bottom: 10px;
 }
 .job-title {
   font-weight: 700;
   font-size: 14px;
   color: #1f2937;
-  max-width: 70%;
+  cursor: pointer;
 }
-.job-status {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-.job-status.active-badge {
-  background: #d1fae5;
-  color: #059669;
-}
-.job-status.inactive-badge {
-  background: #f3f4f6;
-  color: #9ca3af;
+.job-title:hover {
+  color: var(--color-primary);
 }
 
-.job-stats {
+.job-stats-row {
   font-size: 11px;
   color: #6b7280;
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.job-stats-row span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.job-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.btn-activate-card {
+  background: var(--color-green);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-activate-card:hover {
+  background: #059669;
+}
+
+.active-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-delete-job {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+  padding: 4px;
+}
+.btn-delete-job:hover {
+  opacity: 1;
 }
 
 /* --- JOB EDIT VIEW --- */
@@ -767,8 +804,6 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  border-bottom: 1px solid #f3f4f6;
-  padding-bottom: 10px;
 }
 .back-link {
   background: none;
@@ -783,26 +818,6 @@ body {
   color: var(--color-primary);
 }
 
-.btn-activate {
-  background: white;
-  border: 1px solid var(--color-green);
-  color: var(--color-green);
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-  transition: all 0.2s;
-}
-.btn-activate:hover {
-  background: #ecfdf5;
-}
-.btn-activate.active {
-  background: var(--color-green);
-  color: white;
-  cursor: default;
-}
-
 .job-title-input {
   width: 100%;
   border: none;
@@ -813,9 +828,87 @@ body {
   outline: none;
   color: #111;
   background: transparent;
+  margin-bottom: 16px;
 }
 .job-title-input:focus {
   border-color: var(--color-primary);
+}
+
+/* Section Divider */
+.section-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 24px 0;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- COMPRENDRE LE BESOIN BLOCK --- */
+.understand-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 16px;
+}
+.understand-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.understand-icon {
+  font-size: 20px;
+}
+.understand-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+}
+.understand-cta p {
+  font-size: 12px;
+  color: #4b5563;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+.btn-understand {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-understand:hover {
+  background: #1e3a8a;
+}
+.understand-result {
+  margin-top: 8px;
+}
+
+/* --- MINI CANDIDATES LIST (In Job Detail) --- */
+.candidates-container.mini .candidate-card {
+  padding: 10px;
+}
+.candidates-container.mini .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+}
+.candidates-container.mini .name {
+  font-size: 13px;
+}
+.candidates-container.mini .status-text {
+  font-size: 11px;
 }
 
 /* --- ACTIVE JOB BANNER (Analysis View) --- */
