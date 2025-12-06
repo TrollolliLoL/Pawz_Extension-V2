@@ -22,6 +22,14 @@
     "default_title": "Ouvrir Pawz"
   },
 
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
   "permissions": [
     "sidePanel",
     "storage",
@@ -39,7 +47,8 @@
     {
       "resources": [
         "assets/logo.svg",
-        "assets/icon48.png",
+        "assets/logo-blanc.svg",
+        "assets/icon-48.png",
         "content/trigger.css"
       ],
       "matches": ["<all_urls>"]
