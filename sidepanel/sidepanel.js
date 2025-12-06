@@ -634,6 +634,8 @@
     // ===================================
     // SETTINGS
     // ===================================
+    let _settingsOpen = false;
+
     async function loadSettings() {
         const data = await chrome.storage.local.get('pawz_settings');
         const settings = data.pawz_settings || {};
@@ -644,21 +646,43 @@
                 badge.textContent = 'Connecté';
             } else {
                 badge.classList.remove('connected');
-                badge.textContent = 'Non Configuré';
+                badge.textContent = 'Non configuré';
             }
         }
     }
 
+    function openSettings() {
+        document.getElementById('settings-overlay').classList.remove('hidden');
+        _settingsOpen = true;
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-overlay').classList.add('hidden');
+        _settingsOpen = false;
+    }
+
     function setupSettingsListeners() {
-        document.getElementById('btn-settings').addEventListener('click', () => {
-            document.getElementById('settings-overlay').classList.remove('hidden');
+        document.getElementById('btn-settings').addEventListener('click', openSettings);
+        document.getElementById('btn-back-settings')?.addEventListener('click', closeSettings);
+        
+        // Navigation souris et clavier pour fermer les Settings
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 3 && _settingsOpen) {
+                e.preventDefault();
+                closeSettings();
+            }
         });
-        document.getElementById('btn-close-settings').addEventListener('click', () => {
-            document.getElementById('settings-overlay').classList.add('hidden');
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && _settingsOpen) {
+                const tag = document.activeElement?.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                    e.preventDefault();
+                    closeSettings();
+                }
+            }
         });
-        document.getElementById('btn-back-settings')?.addEventListener('click', () => {
-            document.getElementById('settings-overlay').classList.add('hidden');
-        });
+
         document.getElementById('btn-save-api').addEventListener('click', async () => {
             const key = document.getElementById('api-key-input').value.trim();
             if(key) {
@@ -668,7 +692,11 @@
                 await chrome.storage.local.set({ pawz_settings: settings });
                 document.getElementById('api-key-input').value = '';
                 loadSettings();
-                alert('Clé API enregistrée !');
+                
+                // Feedback visuel
+                const btn = document.getElementById('btn-save-api');
+                btn.textContent = '✓ Enregistré';
+                setTimeout(() => btn.textContent = 'Valider', 1500);
             }
         });
     }

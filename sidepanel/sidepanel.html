@@ -182,29 +182,31 @@
 
     <!-- SETTINGS OVERLAY -->
     <div id="settings-overlay" class="settings-overlay hidden">
-      <div class="w-header">
-        <div class="brand-area">
-          <button id="btn-back-settings" class="icon-btn">←</button>
-          <span class="brand-name">Paramètres</span>
-        </div>
-        <div class="actions-area"><button id="btn-close-settings" class="icon-btn">×</button></div>
+      <div class="settings-nav">
+        <button id="btn-back-settings" class="back-link">← Retour</button>
+        <h3 class="settings-title">Paramètres</h3>
       </div>
-      <div class="w-body">
-        <p class="settings-header-text">Gestion de la clé API Gemini.</p>
-        <div class="provider-card active-provider open">
-          <div class="provider-header">
-            <div class="header-left"><span class="provider-name">Google Gemini</span></div>
-            <div class="header-right"><span id="api-status" class="status-badge">Check</span></div>
-          </div>
-          <div class="api-config-area" style="display: block">
-            <div class="api-input-group">
-              <label class="api-label">Clé API</label>
-              <div class="api-input-wrapper">
-                <input id="api-key-input" type="text" class="api-input" placeholder="AIza..." autocomplete="off"/>
-                <button id="btn-save-api" class="btn-validate">Valider</button>
-              </div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <h4 class="section-label">🔑 Connexion API</h4>
+          <p class="settings-desc">Entrez votre clé API Google Gemini pour activer l'analyse automatique des profils.</p>
+          
+          <div class="provider-card">
+            <div class="provider-header">
+              <span class="provider-name">Google Gemini</span>
+              <span id="api-status" class="status-badge">Non configuré</span>
             </div>
+            <div class="api-form">
+              <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off"/>
+              <button id="btn-save-api" class="btn-validate">Valider</button>
+            </div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">Obtenir une clé gratuite →</a>
           </div>
+        </div>
+        
+        <div class="settings-section">
+          <h4 class="section-label">ℹ️ À propos</h4>
+          <p class="settings-desc">Pawz V2.0 - Extension d'analyse de candidats.</p>
         </div>
       </div>
     </div>
