@@ -184,7 +184,7 @@
     <div id="settings-overlay" class="settings-overlay hidden">
       <div class="settings-nav">
         <h3 class="settings-title">⚙️ Paramètres</h3>
-        <button id="btn-back-settings" class="round-btn" title="Retour">↑</button>
+        <button id="btn-back-settings" class="round-btn" title="Retour">←</button>
       </div>
       
       <div class="settings-body">
@@ -214,13 +214,14 @@
             <div class="api-input-group">
               <label class="api-label">Clé API</label>
               <div class="api-input-wrapper">
-                <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off">
+                <input id="api-key-input" type="password" class="api-input" placeholder="Entrez votre clé API..." autocomplete="off">
                 <button id="btn-save-api" class="btn-validate">Valider</button>
               </div>
               <!-- Message d'erreur -->
               <div id="api-error-msg" class="api-error-msg hidden"></div>
               <!-- Affichage clé configurée (vert avec X) -->
               <div id="configured-key-display" class="configured-key-display hidden">
+                <span class="key-label">Votre clé :</span>
                 <span id="key-masked" class="key-masked">AIzaSy********</span>
                 <button id="btn-remove-api" class="btn-remove-key" title="Supprimer la clé">×</button>
               </div>

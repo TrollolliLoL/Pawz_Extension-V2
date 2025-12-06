@@ -534,18 +534,22 @@ body {
 .configured-key-display {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 8px 12px;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 5px 10px;
   background: #d1fae5;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .configured-key-display.hidden {
   display: none;
 }
+.key-label {
+  font-size: 11px;
+  color: #065f46;
+}
 .key-masked {
   font-family: 'Consolas', monospace;
-  font-size: 13px;
+  font-size: 11px;
   color: #065f46;
   font-weight: 600;
   flex: 1;
