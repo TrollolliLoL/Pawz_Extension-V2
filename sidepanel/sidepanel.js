@@ -987,6 +987,13 @@
             await chrome.storage.local.set({ pawz_settings: {} });
             await loadSettings();
         });
+
+        // --- Retour Overlay Détail ---
+        document.getElementById('btn-close-detail')?.addEventListener('click', () => {
+            const overlay = document.getElementById('detail-overlay');
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        });
     }
 
     function showApiFeedback(message, type) {
