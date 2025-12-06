@@ -632,28 +632,104 @@
     }
 
     // ===================================
-    // SETTINGS
+    // SETTINGS & API VALIDATION
     // ===================================
     let _settingsOpen = false;
 
+    /**
+     * Charge les settings et met à jour l'affichage de l'état API.
+     */
     async function loadSettings() {
         const data = await chrome.storage.local.get('pawz_settings');
         const settings = data.pawz_settings || {};
+        
         const badge = document.getElementById('api-status');
-        if (badge) {
-            if (settings.api_key) {
+        const formSection = document.getElementById('api-form-section');
+        const configuredSection = document.getElementById('api-configured-section');
+        const keyDisplay = document.getElementById('key-display');
+        const errorEl = document.getElementById('api-error');
+        
+        // Reset error
+        if (errorEl) {
+            errorEl.classList.add('hidden');
+            errorEl.textContent = '';
+        }
+        
+        if (settings.api_key) {
+            // Clé configurée - afficher la version masquée
+            if (badge) {
                 badge.classList.add('connected');
                 badge.textContent = 'Connecté';
-            } else {
+            }
+            if (formSection) formSection.classList.add('hidden');
+            if (configuredSection) configuredSection.classList.remove('hidden');
+            if (keyDisplay) {
+                // Masquer la clé : AIzaSy...xxxx
+                const key = settings.api_key;
+                const masked = key.substring(0, 6) + '...' + key.substring(key.length - 4);
+                keyDisplay.textContent = masked;
+            }
+        } else {
+            // Pas de clé - afficher le formulaire
+            if (badge) {
                 badge.classList.remove('connected');
                 badge.textContent = 'Non configuré';
             }
+            if (formSection) formSection.classList.remove('hidden');
+            if (configuredSection) configuredSection.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Valide une clé API avec un appel test à Gemini.
+     * @param {string} apiKey - La clé à tester
+     * @returns {Promise<{valid: boolean, error?: string}>}
+     */
+    async function testApiKey(apiKey) {
+        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        
+        try {
+            const response = await fetch(testUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: 'Test' }] }],
+                    generationConfig: { maxOutputTokens: 10 }
+                })
+            });
+
+            if (response.ok) {
+                return { valid: true };
+            }
+
+            // Analyser l'erreur
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || response.statusText;
+
+            if (response.status === 400 && errorMsg.includes('API key not valid')) {
+                return { valid: false, error: 'Clé API invalide. Vérifiez votre clé.' };
+            } else if (response.status === 403) {
+                return { valid: false, error: 'Accès refusé. Vérifiez les permissions de votre clé.' };
+            } else if (response.status === 429) {
+                // Quota dépassé mais clé valide
+                return { valid: true };
+            }
+
+            return { valid: false, error: `Erreur (${response.status}): ${errorMsg}` };
+
+        } catch (error) {
+            if (error.message.includes('fetch')) {
+                return { valid: false, error: 'Erreur réseau. Vérifiez votre connexion.' };
+            }
+            return { valid: false, error: error.message };
         }
     }
 
     function openSettings() {
         document.getElementById('settings-overlay').classList.remove('hidden');
         _settingsOpen = true;
+        // Reload pour afficher l'état actuel
+        loadSettings();
     }
 
     function closeSettings() {
@@ -683,22 +759,77 @@
             }
         });
 
-        document.getElementById('btn-save-api').addEventListener('click', async () => {
-            const key = document.getElementById('api-key-input').value.trim();
-            if(key) {
+        // --- Bouton VALIDER ---
+        document.getElementById('btn-save-api')?.addEventListener('click', async () => {
+            const input = document.getElementById('api-key-input');
+            const btn = document.getElementById('btn-save-api');
+            const errorEl = document.getElementById('api-error');
+            const key = input.value.trim();
+
+            if (!key) {
+                showApiError('Veuillez entrer une clé API.');
+                return;
+            }
+
+            // Mode chargement
+            btn.classList.add('loading');
+            btn.textContent = 'Validation...';
+            errorEl.classList.add('hidden');
+
+            // Tester la clé
+            const result = await testApiKey(key);
+
+            if (result.valid) {
+                // Sauvegarder la clé
                 const data = await chrome.storage.local.get('pawz_settings');
                 const settings = data.pawz_settings || {};
                 settings.api_key = key;
                 await chrome.storage.local.set({ pawz_settings: settings });
-                document.getElementById('api-key-input').value = '';
-                loadSettings();
                 
-                // Feedback visuel
-                const btn = document.getElementById('btn-save-api');
-                btn.textContent = '✓ Enregistré';
-                setTimeout(() => btn.textContent = 'Valider', 1500);
+                // Vider l'input et rafraîchir l'affichage
+                input.value = '';
+                await loadSettings();
+                
+                console.log('[Settings] Clé API validée et enregistrée');
+            } else {
+                // Afficher l'erreur
+                showApiError(result.error || 'Clé invalide');
             }
+
+            // Reset bouton
+            btn.classList.remove('loading');
+            btn.textContent = 'Valider';
         });
+
+        // --- Bouton SUPPRIMER ---
+        document.getElementById('btn-remove-api')?.addEventListener('click', async () => {
+            if (!confirm('Supprimer la clé API ?')) return;
+            await chrome.storage.local.set({ pawz_settings: {} });
+            await loadSettings();
+        });
+
+        // Toggle des cartes dépliables
+        document.getElementById('toggle-api-card')?.addEventListener('click', () => {
+            const content = document.getElementById('api-card-content');
+            const chevron = document.getElementById('api-chevron');
+            content.classList.toggle('hidden');
+            chevron.classList.toggle('open');
+        });
+
+        document.getElementById('toggle-about-card')?.addEventListener('click', () => {
+            const content = document.getElementById('about-card-content');
+            const chevron = document.getElementById('about-chevron');
+            content.classList.toggle('hidden');
+            chevron.classList.toggle('open');
+        });
+    }
+
+    function showApiError(message) {
+        const errorEl = document.getElementById('api-error');
+        if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
     }
 
 })();

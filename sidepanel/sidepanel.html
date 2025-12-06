@@ -183,30 +183,68 @@
     <!-- SETTINGS OVERLAY -->
     <div id="settings-overlay" class="settings-overlay hidden">
       <div class="settings-nav">
-        <button id="btn-back-settings" class="back-link">← Retour</button>
-        <h3 class="settings-title">Paramètres</h3>
+        <h3 class="settings-title">⚙️ Paramètres</h3>
+        <button id="btn-back-settings" class="round-btn" title="Retour">↑</button>
       </div>
+      
       <div class="settings-body">
-        <div class="settings-section">
-          <h4 class="section-label">🔑 Connexion API</h4>
-          <p class="settings-desc">Entrez votre clé API Google Gemini pour activer l'analyse automatique des profils.</p>
-          
-          <div class="provider-card">
-            <div class="provider-header">
-              <span class="provider-name">Google Gemini</span>
+        <!-- CARTE API -->
+        <div class="settings-card">
+          <div class="card-header-row" id="toggle-api-card">
+            <div class="card-header-left">
+              <span class="card-icon">🔑</span>
+              <span class="card-title">Connexion API</span>
+            </div>
+            <div class="card-header-right">
               <span id="api-status" class="status-badge">Non configuré</span>
+              <span class="chevron" id="api-chevron">▼</span>
             </div>
-            <div class="api-form">
-              <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off"/>
-              <button id="btn-save-api" class="btn-validate">Valider</button>
+          </div>
+          
+          <div id="api-card-content" class="card-content">
+            <p class="card-desc">Entrez votre clé API Google Gemini pour activer l'analyse automatique des profils.</p>
+            
+            <!-- État : Clé non configurée -->
+            <div id="api-form-section" class="api-form-section">
+              <div class="api-form">
+                <input id="api-key-input" type="password" class="api-input" placeholder="AIzaSyD..." autocomplete="off"/>
+                <button id="btn-save-api" class="btn-validate">Valider</button>
+              </div>
+              <p id="api-error" class="api-error hidden"></p>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">Obtenir une clé gratuite →</a>
             </div>
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">Obtenir une clé gratuite →</a>
+            
+            <!-- État : Clé configurée -->
+            <div id="api-configured-section" class="api-configured hidden">
+              <div class="configured-key-row">
+                <span class="key-display" id="key-display">AIza...xxxx</span>
+                <button id="btn-remove-api" class="btn-remove" title="Supprimer la clé">✕</button>
+              </div>
+              <p class="api-success">✓ Clé validée et active</p>
+            </div>
           </div>
         </div>
-        
-        <div class="settings-section">
-          <h4 class="section-label">ℹ️ À propos</h4>
-          <p class="settings-desc">Pawz V2.0 - Extension d'analyse de candidats.</p>
+
+        <!-- CARTE À PROPOS -->
+        <div class="settings-card">
+          <div class="card-header-row" id="toggle-about-card">
+            <div class="card-header-left">
+              <span class="card-icon">ℹ️</span>
+              <span class="card-title">À propos</span>
+            </div>
+            <div class="card-header-right">
+              <span class="version-badge">v2.0</span>
+              <span class="chevron" id="about-chevron">▼</span>
+            </div>
+          </div>
+          
+          <div id="about-card-content" class="card-content hidden">
+            <p class="card-desc">Pawz - Extension d'analyse de candidats propulsée par l'IA.</p>
+            <div class="about-links">
+              <a href="#" class="about-link">Documentation</a>
+              <a href="#" class="about-link">Support</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
