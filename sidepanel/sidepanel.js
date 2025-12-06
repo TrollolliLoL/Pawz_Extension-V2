@@ -647,10 +647,62 @@
         setupFormListeners();
 
         // Bouton "Analyser ma fiche de poste"
+        // Bouton "Analyser ma fiche de poste"
         const btnUnderstand = document.getElementById('btn-understand');
         if (btnUnderstand) {
-            btnUnderstand.addEventListener('click', () => {
-                alert("Cette fonctionnalité sera disponible dans la prochaine mise à jour !");
+            btnUnderstand.addEventListener('click', async () => {
+                const briefText = document.getElementById('brief-text').value.trim();
+                
+                if (!briefText || briefText.length < 50) {
+                    alert("Le brief est trop court pour être analysé (min 50 caractères).");
+                    return;
+                }
+
+                if (_editingJobId === 'new') {
+                    alert("Veuillez d'abord enregistrer le job pour lancer l'analyse.");
+                    return;
+                }
+
+                // Loading State
+                const originalText = btnUnderstand.textContent;
+                btnUnderstand.textContent = "Magie en cours... 🔮";
+                btnUnderstand.disabled = true;
+                btnUnderstand.style.opacity = 0.7;
+
+                try {
+                    // Send to background
+                    const response = await chrome.runtime.sendMessage({
+                        action: 'ANALYZE_JOB',
+                        brief: briefText
+                    });
+
+                    if (response && response.success && response.data) {
+                        // Success
+                        const summary = response.data.summary;
+                        
+                        // Update Job Data
+                        const jobIndex = _allJobs.findIndex(j => j.id === _editingJobId);
+                        if (jobIndex !== -1) {
+                            _allJobs[jobIndex].ai_summary = summary;
+                            await chrome.storage.local.set({ pawz_jobs: _allJobs });
+                            
+                            // Update UI
+                            updateUnderstandBlock(_allJobs[jobIndex]);
+                        }
+                    } else {
+                        console.error('[Sidepanel] Analyze Job Error:', response?.error);
+                        alert("Erreur lors de l'analyse : " + (response?.error || 'Inconnue'));
+                    }
+
+                } catch (err) {
+                    console.error('[Sidepanel] Analyze Job Exception:', err);
+                    alert("Erreur technique : " + err.message);
+                } finally {
+                    // Reset Button
+                    btnUnderstand.textContent = originalText;
+                    btnUnderstand.disabled = false;
+                    btnUnderstand.style.opacity = 1;
+                }
             });
         }
     }

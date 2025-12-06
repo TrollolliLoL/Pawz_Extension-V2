@@ -7,6 +7,7 @@
  * - Watchdog via chrome.alarms pour la résilience
  */
 
+import { GeminiClient } from '../lib/gemini.js';
 import { db } from '../lib/db.js';
 import { generateUUID } from '../lib/utils.js';
 import { 
@@ -125,11 +126,18 @@ async function handleMessage(message, sender) {
         case 'RETRY_CANDIDATE':
             return await retryCandidate(message.candidateId);
 
+        case 'ANALYZE_JOB':
+            return await handleAnalyzeJob(message.brief);
+
         default:
             console.warn('[Background] Action inconnue:', message.action);
             return { success: false, error: 'Action non reconnue' };
     }
 }
+
+// ============================================================================
+// FONCTIONS HELPERS
+// ============================================================================
 
 /**
  * Gère l'ajout d'un nouveau candidat.
@@ -240,6 +248,25 @@ async function retryCandidate(candidateId) {
         
         return { success: true };
     } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Analyse une description de poste via Gemini.
+ * @param {string} brief - Description textuelle du poste
+ */
+async function handleAnalyzeJob(brief) {
+    if (!brief || brief.trim().length === 0) {
+        return { success: false, error: 'La description du poste est vide.' };
+    }
+
+    try {
+        console.log('[Background] Analyse de job demandée...');
+        const result = await GeminiClient.parseJobDescription(brief);
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('[Background] Erreur analyse job:', error);
         return { success: false, error: error.message };
     }
 }
