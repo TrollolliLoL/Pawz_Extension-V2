@@ -139,6 +139,16 @@
     background: #e5e7eb;
 }
 
+.btn-history {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #dbeafe;
+}
+.btn-history:hover {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+}
+
 /* === ÉTATS FEEDBACK === */
 .pawz-trigger.state-success {
     background: linear-gradient(145deg, #10B981 0%, #059669 100%) !important;

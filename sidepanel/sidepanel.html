@@ -134,9 +134,26 @@
         <div id="active-job-banner" class="active-job-banner hidden">
             <span>🔴 Job actif : <b id="banner-job-title">Aucun</b></span>
         </div>
+        
+        <!-- BARRE DE RECHERCHE & FILTRES -->
+        <div class="search-filters-bar">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-candidates" class="search-input" placeholder="Rechercher un candidat...">
+                <button id="btn-clear-search" class="btn-clear-search hidden">×</button>
+            </div>
+            <div class="filter-pills">
+                <button class="filter-pill" data-filter="score80" title="Score ≥ 80%">⭐ Top</button>
+                <select id="filter-job" class="filter-select">
+                    <option value="">Toutes les fiches</option>
+                </select>
+            </div>
+        </div>
+        
         <div class="queue-stats">
           <span class="stat-badge">⏳ <span id="count-pending">0</span></span>
           <span class="stat-badge">✅ <span id="count-done">0</span></span>
+          <span class="stat-badge filter-info hidden" id="filter-info">🔎 <span id="count-filtered">0</span> résultats</span>
         </div>
         <div id="candidates-list" class="candidates-container">
           <div class="empty-state"><p>Aucun candidat.</p></div>

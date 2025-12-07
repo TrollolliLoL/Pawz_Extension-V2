@@ -202,35 +202,54 @@ async function updateMiniSidebarButtons() {
 
     // Check existing analyses for this URL
     const analyses = await getAnalysesForUrl(currentUrl);
+    
+    // Find exact match (same job, same model, same tuning)
     const exactMatch = analyses.find(a => 
         a.job_id === circumstances.job_id && 
-        a.model === circumstances.model
+        a.model === circumstances.model &&
+        isSameTuning(a.tuning_hash, circumstances.tuning_hash)
     );
 
     if (exactMatch) {
-        // Exact match: only show "Afficher l'analyse"
+        // ========================================
+        // CAS 3 : "Déjà Vu" (Exact Match)
+        // ========================================
         const btnView = document.createElement('button');
         btnView.className = 'mini-sidebar-btn btn-view-analysis';
-        btnView.textContent = '👁️ Afficher l\'analyse';
+        btnView.textContent = '👁️ Voir l\'analyse';
         btnView.addEventListener('click', () => viewAnalysis(exactMatch.id));
         container.appendChild(btnView);
+        
+        // Si plusieurs analyses existent, montrer le bouton historique
+        if (analyses.length > 1) {
+            const btnHistory = document.createElement('button');
+            btnHistory.className = 'mini-sidebar-btn btn-history';
+            btnHistory.textContent = '📂 Analyses précédentes';
+            btnHistory.addEventListener('click', () => openAnalysesHistory(currentUrl));
+            container.appendChild(btnHistory);
+        }
+        
     } else if (analyses.length > 0) {
-        // URL analyzed but different circumstances
+        // ========================================
+        // CAS 2 : "Contexte Différent"
+        // ========================================
         const btnAnalyze = document.createElement('button');
         btnAnalyze.className = 'mini-sidebar-btn btn-analyze';
-        btnAnalyze.textContent = '🚀 Lancer l\'analyse';
+        btnAnalyze.textContent = '🚀 Nouvelle analyse';
         btnAnalyze.addEventListener('click', () => launchAnalysis(circumstances));
         container.appendChild(btnAnalyze);
 
         // Most recent analysis
-        const mostRecent = analyses.sort((a, b) => b.timestamp - a.timestamp)[0];
-        const btnViewRecent = document.createElement('button');
-        btnViewRecent.className = 'mini-sidebar-btn btn-view-analysis';
-        btnViewRecent.textContent = '👁️ Analyse la plus récente';
-        btnViewRecent.addEventListener('click', () => viewAnalysis(mostRecent.id));
-        container.appendChild(btnViewRecent);
+        const btnHistory = document.createElement('button');
+        btnHistory.className = 'mini-sidebar-btn btn-history';
+        btnHistory.textContent = '📂 Analyses précédentes (' + analyses.length + ')';
+        btnHistory.addEventListener('click', () => openAnalysesHistory(currentUrl));
+        container.appendChild(btnHistory);
+        
     } else {
-        // Never analyzed
+        // ========================================
+        // CAS 1 : "Nouveau" (Jamais analysé)
+        // ========================================
         const btnAnalyze = document.createElement('button');
         btnAnalyze.className = 'mini-sidebar-btn btn-analyze';
         btnAnalyze.textContent = '🚀 Lancer l\'analyse';
@@ -239,13 +258,44 @@ async function updateMiniSidebarButtons() {
     }
 }
 
+/**
+ * Compare deux hashes de tuning (simplified)
+ */
+function isSameTuning(hash1, hash2) {
+    // Si les hashes n'existent pas, on considère que c'est le même (legacy)
+    if (!hash1 && !hash2) return true;
+    if (!hash1 || !hash2) return false;
+    return hash1 === hash2;
+}
+
+/**
+ * Génère un hash simple des poids de tuning
+ */
+function generateTuningHash(weights) {
+    if (!weights) return null;
+    // Simple hash: concaténation des valeurs
+    return Object.values(weights).join('-');
+}
+
+/**
+ * Ouvre le Sidepanel sur l'onglet Analyse avec filtre URL
+ */
+function openAnalysesHistory(url) {
+    closeMiniSidebar();
+    chrome.runtime.sendMessage({
+        action: 'OPEN_ANALYSES_FOR_URL',
+        url: url
+    });
+}
+
 async function getCurrentCircumstances() {
     try {
-        const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_settings']);
+        const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_settings', 'pawz_active_weights']);
         console.log("[Pawz] Storage Data:", data); // DEBUG
 
         const jobs = data.pawz_jobs || [];
         const settings = data.pawz_settings || {};
+        const weights = data.pawz_active_weights || null;
 
         const activeJob = jobs.find(j => j.active === true);
         
@@ -257,7 +307,8 @@ async function getCurrentCircumstances() {
         return {
             job_id: activeJob.id,
             model: settings.selected_model || 'gemini-2.0-flash',
-            api_key: settings.api_key
+            api_key: settings.api_key,
+            tuning_hash: generateTuningHash(weights)
         };
     } catch (e) {
         console.error("[Pawz] Error getting circumstances:", e);

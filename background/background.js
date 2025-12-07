@@ -125,6 +125,27 @@ async function handleMessage(message, sender) {
         case 'RETRY_CANDIDATE':
             return await retryCandidate(message.candidateId);
 
+        case 'OPEN_ANALYSIS':
+            // Ouvre le sidepanel et affiche un candidat spécifique
+            try {
+                await chrome.sidePanel.open({ tabId: sender.tab?.id });
+                // Store l'ID pour que le sidepanel puisse l'ouvrir
+                await chrome.storage.local.set({ pawz_open_candidate: message.analysisId });
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+
+        case 'OPEN_ANALYSES_FOR_URL':
+            // Ouvre le sidepanel avec filtre URL
+            try {
+                await chrome.sidePanel.open({ tabId: sender.tab?.id });
+                await chrome.storage.local.set({ pawz_filter_url: message.url });
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+
         default:
             console.warn('[Background] Action inconnue:', message.action);
             return { success: false, error: 'Action non reconnue' };

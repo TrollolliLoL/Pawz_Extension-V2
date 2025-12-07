@@ -17,6 +17,11 @@
     // UI State
     let _searchViewMode = 'LIST'; // 'LIST' | 'EDIT'
     
+    // Filter State (Onglet Analyse)
+    let _filterText = '';
+    let _filterScore80 = false;
+    let _filterJobId = '';
+    
     // Form Data
     let _mustCriteria = [];
     let _niceCriteria = [];
@@ -40,6 +45,7 @@
         setupAccordionListeners();
         setupNavigationShortcuts();
         setupTuningListeners();
+        setupSearchFiltersListeners();
         await loadTuningSettings();
         
         console.log('[Sidepanel] Ready.');
@@ -560,6 +566,45 @@
         }
         if (changes.pawz_settings) {
             loadSettings();
+        }
+        
+        // Handle deep-link to specific candidate
+        if (changes.pawz_open_candidate) {
+            const candidateId = changes.pawz_open_candidate.newValue;
+            if (candidateId) {
+                // Switch to Analysis tab and open detail
+                document.getElementById('tab-analysis')?.click();
+                setTimeout(() => {
+                    openCandidateDetail(candidateId);
+                    // Clear the flag
+                    chrome.storage.local.remove('pawz_open_candidate');
+                }, 100);
+            }
+        }
+        
+        // Handle filter by URL
+        if (changes.pawz_filter_url) {
+            const url = changes.pawz_filter_url.newValue;
+            if (url) {
+                // Switch to Analysis tab and set filter
+                document.getElementById('tab-analysis')?.click();
+                const searchInput = document.getElementById('search-candidates');
+                if (searchInput) {
+                    // Extract domain from URL for easier search
+                    try {
+                        const urlObj = new URL(url);
+                        searchInput.value = urlObj.pathname.split('/').pop() || urlObj.hostname;
+                        _filterText = searchInput.value.toLowerCase();
+                        document.getElementById('btn-clear-search')?.classList.remove('hidden');
+                        renderCandidatesList();
+                    } catch (e) {
+                        searchInput.value = url;
+                        _filterText = url.toLowerCase();
+                    }
+                }
+                // Clear the flag
+                chrome.storage.local.remove('pawz_filter_url');
+            }
         }
     });
 
@@ -1157,8 +1202,103 @@
     }
 
     // ===================================
-    // CANDIDATES LIST (Main View)
+    // SEARCH & FILTERS LOGIC
     // ===================================
+    function setupSearchFiltersListeners() {
+        const searchInput = document.getElementById('search-candidates');
+        const btnClear = document.getElementById('btn-clear-search');
+        const filterPills = document.querySelectorAll('.filter-pill');
+        const filterJobSelect = document.getElementById('filter-job');
+        
+        // Search Input (Live)
+        searchInput?.addEventListener('input', (e) => {
+            _filterText = e.target.value.toLowerCase().trim();
+            btnClear?.classList.toggle('hidden', !_filterText);
+            renderCandidatesList();
+        });
+        
+        // Clear Search
+        btnClear?.addEventListener('click', () => {
+            searchInput.value = '';
+            _filterText = '';
+            btnClear.classList.add('hidden');
+            renderCandidatesList();
+        });
+        
+        // Filter Pills (Score > 80)
+        filterPills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const filter = pill.dataset.filter;
+                if (filter === 'score80') {
+                    _filterScore80 = !_filterScore80;
+                    pill.classList.toggle('active', _filterScore80);
+                }
+                renderCandidatesList();
+            });
+        });
+        
+        // Filter by Job
+        filterJobSelect?.addEventListener('change', (e) => {
+            _filterJobId = e.target.value;
+            renderCandidatesList();
+        });
+    }
+    
+    function updateJobFilterDropdown() {
+        const select = document.getElementById('filter-job');
+        if (!select) return;
+        
+        // Keep current selection
+        const currentValue = select.value;
+        
+        // Clear and rebuild
+        select.innerHTML = '<option value="">Toutes les fiches</option>';
+        
+        _allJobs.forEach(job => {
+            const option = document.createElement('option');
+            option.value = job.id;
+            option.textContent = job.title || 'Sans titre';
+            select.appendChild(option);
+        });
+        
+        // Restore selection if still valid
+        if (currentValue && _allJobs.find(j => j.id === currentValue)) {
+            select.value = currentValue;
+        }
+    }
+    
+    function applyFilters(candidates) {
+        let filtered = [...candidates];
+        
+        // 1. Text Search (Nom, Titre, Job, URL)
+        if (_filterText) {
+            filtered = filtered.filter(c => {
+                const name = (c.candidate_name || '').toLowerCase();
+                const title = (c.candidate_title || c.analysis?.candidate_title || '').toLowerCase();
+                const url = (c.source_url || '').toLowerCase();
+                const job = _allJobs.find(j => j.id === c.job_id);
+                const jobTitle = (job?.title || '').toLowerCase();
+                
+                return name.includes(_filterText) || 
+                       title.includes(_filterText) || 
+                       url.includes(_filterText) ||
+                       jobTitle.includes(_filterText);
+            });
+        }
+        
+        // 2. Score >= 80% Filter
+        if (_filterScore80) {
+            filtered = filtered.filter(c => (c.score || 0) >= 80);
+        }
+        
+        // 3. Job Filter
+        if (_filterJobId) {
+            filtered = filtered.filter(c => c.job_id === _filterJobId);
+        }
+        
+        return filtered;
+    }
+
     // ===================================
     // CANDIDATES LIST (Main View)
     // ===================================
@@ -1166,24 +1306,45 @@
         const container = document.getElementById('candidates-list');
         const countPending = document.getElementById('count-pending');
         const countDone = document.getElementById('count-done');
+        const filterInfo = document.getElementById('filter-info');
+        const countFiltered = document.getElementById('count-filtered');
         
         container.innerHTML = '';
         
-        // Show ALL candidates (Global View)
-        const candidates = _allCandidates;
+        // Update Job Dropdown
+        updateJobFilterDropdown();
         
-        const pending = candidates.filter(c => ['pending','processing'].includes(c.status)).length;
-        const done = candidates.filter(c => c.status === 'completed').length;
-        if (countPending) countPending.textContent = pending;
-        if (countDone) countDone.textContent = done;
+        // Stats sur TOUS les candidats (avant filtres)
+        const allPending = _allCandidates.filter(c => ['pending','processing'].includes(c.status)).length;
+        const allDone = _allCandidates.filter(c => c.status === 'completed').length;
+        if (countPending) countPending.textContent = allPending;
+        if (countDone) countDone.textContent = allDone;
+        
+        // Apply Filters
+        const hasFilters = _filterText || _filterScore80 || _filterJobId;
+        const candidates = hasFilters ? applyFilters(_allCandidates) : _allCandidates;
+        
+        // Show filter info
+        if (filterInfo) {
+            if (hasFilters) {
+                filterInfo.classList.remove('hidden');
+                if (countFiltered) countFiltered.textContent = candidates.length;
+            } else {
+                filterInfo.classList.add('hidden');
+            }
+        }
         
         if (candidates.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Aucune analyse.</p><small>Activez une recherche et capturez des profils !</small></div>';
+            if (hasFilters) {
+                container.innerHTML = '<div class="empty-state"><p>Aucun résultat.</p><small>Essayez de modifier vos filtres.</small></div>';
+            } else {
+                container.innerHTML = '<div class="empty-state"><p>Aucune analyse.</p><small>Activez une recherche et capturez des profils !</small></div>';
+            }
             return;
         }
 
         // Sort by most recent
-        const sorted = [...candidates].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        const sorted = [...candidates].sort((a, b) => (b.timestamp_added || 0) - (a.timestamp_added || 0));
 
         sorted.forEach(c => {
             const card = document.createElement('div');
