@@ -365,10 +365,12 @@
     });
 
     /**
-     * Lance l'analyse d'un PDF - Capture Binaire Universelle
+     * Lance l'analyse d'un PDF
+     * - Local (file://) : Délègue au Background (qui a les privilèges)
+     * - CDN/Remote : Fetch + Base64 dans le Content Script
      */
     async function launchPdfAnalysis(pdfContext, btn) {
-        console.log('[Pawz] Lancement analyse PDF (Capture Binaire)...', pdfContext);
+        console.log('[Pawz] Lancement analyse PDF...', pdfContext);
         
         // Fermer la sidebar
         if (_pdfSidebar) _pdfSidebar.classList.remove('open');
@@ -377,57 +379,50 @@
         btn.innerHTML = '⏳';
         
         try {
-            // ============================================
-            // CAPTURE BINAIRE UNIVERSELLE : Fetch + Base64
-            // ============================================
-            console.log('[Pawz] Fetch du PDF:', pdfContext.url);
-            
-            let pdfBase64 = null;
-            
-            try {
-                const response = await fetch(pdfContext.url);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const blob = await response.blob();
-                
-                // Vérifier que c'est bien un PDF
-                if (!blob.type.includes('pdf') && blob.type !== 'application/octet-stream') {
-                    console.warn('[Pawz] Type MIME inattendu:', blob.type);
-                }
-                
-                pdfBase64 = await blobToBase64(blob);
-                console.log('[Pawz] PDF capturé en Base64, taille:', pdfBase64.length);
-                
-            } catch (fetchError) {
-                console.error('[Pawz] Erreur fetch PDF:', fetchError);
-                
-                // Message d'erreur explicite selon le type
-                let errorMsg = '';
-                if (pdfContext.type === 'local') {
-                    errorMsg = '❌ Accès refusé au PDF local.\n\n' +
-                        'Pour analyser les PDF locaux :\n' +
-                        '1. Allez dans chrome://extensions\n' +
-                        '2. Cliquez sur "Détails" de Pawz\n' +
-                        '3. Activez "Autoriser l\'accès aux URL de fichiers"';
-                } else {
-                    errorMsg = `❌ Impossible de télécharger le PDF.\n\nErreur: ${fetchError.message}\n\nCela peut être dû à une restriction CORS du serveur.`;
-                }
-                
-                alert(errorMsg);
-                throw fetchError;
-            }
-            
-            // Construire le payload avec le Base64
-            const payload = {
+            let payload = {
                 pdf_url: pdfContext.url,
-                pdf_base64: pdfBase64,
                 source_type: pdfContext.type
             };
             
-            console.log('[Pawz] Envoi au background avec Base64...');
+            // ============================================
+            // PDF LOCAL : Déléguer au Background
+            // ============================================
+            if (pdfContext.type === 'local') {
+                console.log('[Pawz] PDF local - délégation au background...');
+                // Ne pas faire de fetch ici, le background s'en charge
+            }
+            // ============================================
+            // PDF CDN/REMOTE : Fetch + Base64 ici
+            // ============================================
+            else {
+                console.log('[Pawz] PDF distant - fetch dans content script...');
+                
+                try {
+                    const response = await fetch(pdfContext.url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const blob = await response.blob();
+                    
+                    if (!blob.type.includes('pdf') && blob.type !== 'application/octet-stream') {
+                        console.warn('[Pawz] Type MIME inattendu:', blob.type);
+                    }
+                    
+                    const pdfBase64 = await blobToBase64(blob);
+                    console.log('[Pawz] PDF capturé en Base64, taille:', pdfBase64.length);
+                    
+                    payload.pdf_base64 = pdfBase64;
+                    
+                } catch (fetchError) {
+                    console.error('[Pawz] Erreur fetch PDF:', fetchError);
+                    alert(`❌ Impossible de télécharger le PDF.\n\nErreur: ${fetchError.message}\n\nCela peut être dû à une restriction CORS du serveur.`);
+                    throw fetchError;
+                }
+            }
+            
+            console.log('[Pawz] Envoi au background...');
             
             const response = await chrome.runtime.sendMessage({
                 action: 'ADD_PDF_CANDIDATE',
@@ -445,7 +440,16 @@
                     btn.innerHTML = '📄';
                 }, 2000);
             } else {
-                throw new Error(response?.error || 'Erreur inconnue');
+                // Afficher l'erreur du background
+                const errorMsg = response?.error || 'Erreur inconnue';
+                if (pdfContext.type === 'local' && errorMsg.includes('fetch')) {
+                    alert('❌ Impossible de lire le fichier PDF local.\n\n' +
+                        'Vérifiez que la case "Autoriser l\'accès aux URL de fichiers" est bien cochée :\n' +
+                        '1. Allez dans chrome://extensions\n' +
+                        '2. Cliquez sur "Détails" de Pawz\n' +
+                        '3. Activez cette option');
+                }
+                throw new Error(errorMsg);
             }
             
         } catch (error) {

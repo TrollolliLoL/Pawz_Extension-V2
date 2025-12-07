@@ -248,9 +248,36 @@ async function handleAddPdfCandidate(payload, sender) {
 
     try {
         if (payload.pdf_base64) {
-            // PDF déjà en Base64 (envoyé par content script)
+            // PDF déjà en Base64 (envoyé par content script - cas CDN/remote)
             base64Data = payload.pdf_base64;
             console.log('[Background] PDF Base64 reçu, taille:', base64Data.length);
+            
+        } else if (payload.pdf_url && payload.pdf_url.startsWith('file:')) {
+            // ============================================
+            // PDF LOCAL : Le Background fait le fetch
+            // (Il a les privilèges si "Autoriser l'accès aux URL de fichiers" est activé)
+            // ============================================
+            console.log('[Background] Fetch PDF local:', payload.pdf_url);
+            
+            try {
+                const response = await fetch(payload.pdf_url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                base64Data = await blobToBase64(blob);
+                console.log('[Background] PDF local converti en Base64, taille:', base64Data.length);
+                
+            } catch (fetchError) {
+                console.error('[Background] Fetch PDF local échoué:', fetchError);
+                return { 
+                    success: false, 
+                    error: 'Impossible de lire le fichier PDF local. Vérifiez que "Autoriser l\'accès aux URL de fichiers" est activé dans chrome://extensions > Pawz > Détails.'
+                };
+            }
+            
         } else if (payload.pdf_url && payload.pdf_url.startsWith('http')) {
             // PDF distant (HTTP/HTTPS) : fetch et conversion
             console.log('[Background] Fetch PDF distant:', payload.pdf_url);
@@ -271,31 +298,9 @@ async function handleAddPdfCandidate(payload, sender) {
                 console.log('[Background] PDF distant converti, taille:', base64Data.length);
             } catch (fetchError) {
                 console.error('[Background] Fetch PDF échoué:', fetchError);
-                // Fallback : utiliser le texte extrait si disponible
-                if (payload.extracted_text) {
-                    console.log('[Background] Fallback sur texte extrait');
-                    textContent = payload.extracted_text;
-                    payloadType = 'text';
-                } else {
-                    throw new Error(`Impossible de télécharger le PDF: ${fetchError.message}`);
-                }
+                throw new Error(`Impossible de télécharger le PDF: ${fetchError.message}`);
             }
-        } else if (payload.pdf_url && payload.pdf_url.startsWith('file:')) {
-            // PDF local : utiliser le texte extrait (le background ne peut pas accéder aux fichiers locaux)
-            if (payload.extracted_text) {
-                console.log('[Background] PDF local - utilisation du texte extrait');
-                textContent = payload.extracted_text;
-                payloadType = 'text';
-            } else {
-                return { 
-                    success: false, 
-                    error: 'Pour les PDF locaux, le texte doit être extrait par le content script' 
-                };
-            }
-        } else if (payload.extracted_text) {
-            // Fallback texte
-            textContent = payload.extracted_text;
-            payloadType = 'text';
+            
         } else {
             return { success: false, error: 'Aucune donnée PDF fournie' };
         }
