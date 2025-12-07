@@ -46,10 +46,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/logo.svg",
-        "assets/logo-blanc.svg",
-        "assets/Logo Pawz Blanc VFinal.PNG",
-        "assets/icon-48.png",
+        "assets/*",
         "content/trigger.css"
       ],
       "matches": ["<all_urls>"]

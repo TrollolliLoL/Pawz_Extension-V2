@@ -1,29 +1,214 @@
 /**
  * PAWZ V2 - Content Script (Refactored)
  * Trigger Button with Drag-Drop, Mini-Sidebar, Smart Analysis Logic
+ * 
+ * Structure IIFE pour isoler PDF vs Web
  */
 
-console.log("[Pawz] Content script loaded.");
+(function() {
+    'use strict';
+    
+    console.log("[Pawz] Content script loaded.");
 
-// === CONFIG ===
-const TRIGGER_ID = 'pawz-trigger-root';
-const STORAGE_KEY_POS = 'pawz_trigger_position';
+    // ============================================================================
+    // PDF DETECTION - Vérifié EN PREMIER
+    // ============================================================================
 
-let _shadowRoot = null;
-let _triggerBtn = null;
-let _miniSidebar = null;
-let _dragOverlay = null;
-let _isDragging = false;
-let _startY = 0;
-let _currentY = 50; // % from top
+    function isPdfContext() {
+        const url = window.location.href;
+        const urlLower = url.toLowerCase();
+        // Nettoyer l'URL des paramètres pour détecter .pdf
+        const urlWithoutParams = urlLower.split('?')[0];
+        
+        // PDF local (file://.../*.pdf)
+        if (window.location.protocol === 'file:' && urlWithoutParams.endsWith('.pdf')) {
+            console.log('[Pawz] PDF local détecté');
+            return { type: 'local', url };
+        }
+        
+        // PDF distant CDN Collective.work (avec ou sans .pdf)
+        if (url.includes('cdn.collective.work')) {
+            console.log('[Pawz] PDF CDN Collective détecté');
+            return { type: 'cdn', url };
+        }
+        
+        // Autre PDF distant (URL se terminant par .pdf)
+        if (urlWithoutParams.endsWith('.pdf') && window.location.protocol.startsWith('http')) {
+            console.log('[Pawz] PDF distant détecté');
+            return { type: 'remote', url };
+        }
+        
+        return null;
+    }
 
-// === INIT ===
-function init() {
-    if (document.getElementById(TRIGGER_ID)) return;
-    loadPosition().then(() => {
-        createTrigger();
-    });
-}
+    /**
+     * Initialise le mode PDF (UI simplifiée)
+     */
+    function initPdfMode(pdfContext) {
+        console.log('[Pawz] Mode PDF activé:', pdfContext);
+        
+        // Éviter les doublons
+        if (document.getElementById('pawz-pdf-trigger')) return;
+        
+        // Créer une pastille simple pour les PDF
+        const host = document.createElement('div');
+        host.id = 'pawz-pdf-trigger';
+        host.style.cssText = `
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            z-index: 2147483647 !important;
+        `;
+        document.body.appendChild(host);
+        
+        const shadow = host.attachShadow({ mode: 'open' });
+        
+        // Styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .pawz-pdf-btn {
+                width: 70px;
+                height: 70px;
+                background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(30,64,175,0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 3px solid white;
+                transition: transform 0.2s, box-shadow 0.2s;
+                font-size: 28px;
+            }
+            .pawz-pdf-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(30,64,175,0.6);
+            }
+            .pawz-pdf-btn.loading {
+                opacity: 0.7;
+                pointer-events: none;
+                animation: pulse 1s infinite;
+            }
+            .pawz-pdf-btn.success {
+                background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+            }
+            .pawz-pdf-btn.error {
+                background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+            }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+        shadow.appendChild(style);
+        
+        // Bouton
+        const btn = document.createElement('div');
+        btn.className = 'pawz-pdf-btn';
+        btn.innerHTML = '📄';
+        btn.title = 'Analyser ce PDF';
+        shadow.appendChild(btn);
+        
+        // Click handler
+        btn.addEventListener('click', () => launchPdfAnalysis(pdfContext, btn));
+    }
+
+    /**
+     * Lance l'analyse d'un PDF
+     */
+    async function launchPdfAnalysis(pdfContext, btn) {
+        console.log('[Pawz] Lancement analyse PDF...', pdfContext);
+        
+        btn.classList.add('loading');
+        btn.innerHTML = '⏳';
+        
+        try {
+            // Extraire le texte visible (le viewer PDF de Chrome met le texte dans le body)
+            const extractedText = document.body?.innerText?.trim() || '';
+            console.log('[Pawz] Texte extrait, longueur:', extractedText.length);
+            
+            // Construire le payload
+            const payload = {
+                pdf_url: pdfContext.url,
+                source_type: pdfContext.type
+            };
+            
+            // Ajouter le texte extrait comme fallback
+            if (extractedText && extractedText.length > 100) {
+                payload.extracted_text = extractedText.substring(0, 50000);
+            }
+            
+            console.log('[Pawz] Envoi au background...');
+            
+            const response = await chrome.runtime.sendMessage({
+                action: 'ADD_PDF_CANDIDATE',
+                payload: payload
+            });
+            
+            console.log('[Pawz] Réponse background:', response);
+            
+            if (response && response.success) {
+                btn.classList.remove('loading');
+                btn.classList.add('success');
+                btn.innerHTML = '✅';
+                setTimeout(() => {
+                    btn.classList.remove('success');
+                    btn.innerHTML = '📄';
+                }, 2000);
+            } else {
+                throw new Error(response?.error || 'Erreur inconnue');
+            }
+            
+        } catch (error) {
+            console.error('[Pawz] Erreur analyse PDF:', error);
+            btn.classList.remove('loading');
+            btn.classList.add('error');
+            btn.innerHTML = '❌';
+            setTimeout(() => {
+                btn.classList.remove('error');
+                btn.innerHTML = '📄';
+            }, 2000);
+        }
+    }
+
+    // === VÉRIFICATION PDF AU DÉMARRAGE ===
+    const pdfContext = isPdfContext();
+    
+    if (pdfContext) {
+        // Mode PDF : initialiser UI et STOP
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => initPdfMode(pdfContext));
+        } else {
+            initPdfMode(pdfContext);
+        }
+        return; // STOP ICI - Ne pas charger le code web
+    }
+
+    // ============================================================================
+    // WEB MODE - Code existant (exécuté seulement si PAS un PDF)
+    // ============================================================================
+    
+    console.log("[Pawz] Mode Web activé");
+
+    // === CONFIG ===
+    const TRIGGER_ID = 'pawz-trigger-root';
+    const STORAGE_KEY_POS = 'pawz_trigger_position';
+
+    let _shadowRoot = null;
+    let _triggerBtn = null;
+    let _miniSidebar = null;
+    let _dragOverlay = null;
+    let _isDragging = false;
+    let _startY = 0;
+    let _currentY = 50; // % from top
+
+    // === INIT ===
+    function init() {
+        if (document.getElementById(TRIGGER_ID)) return;
+        loadPosition().then(() => {
+            createTrigger();
+        });
+    }
 
 async function loadPosition() {
     try {
@@ -449,3 +634,5 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
+})(); // Fin IIFE

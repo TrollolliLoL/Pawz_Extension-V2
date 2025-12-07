@@ -151,6 +151,10 @@ async function handleMessage(message, sender) {
             // Analyse approfondie d'une fiche de poste pour le sourcing
             return await handleSourcingAnalysis(message.jobId);
 
+        case 'ADD_PDF_CANDIDATE':
+            // Ajout d'un candidat depuis un PDF (local ou distant)
+            return await handleAddPdfCandidate(message.payload, sender);
+
         default:
             console.warn('[Background] Action inconnue:', message.action);
             return { success: false, error: 'Action non reconnue' };
@@ -207,6 +211,139 @@ async function handleAddCandidate(payload, sender) {
     }
 
     return result;
+}
+
+/**
+ * Gère l'ajout d'un candidat depuis un PDF.
+ * @param {Object} payload - { pdf_base64?, pdf_url?, extracted_text?, source_type }
+ * @param {Object} sender - Expéditeur
+ */
+async function handleAddPdfCandidate(payload, sender) {
+    console.log('[Background] Ajout PDF candidat:', payload.source_type, payload.pdf_url);
+    
+    // Vérifier qu'il y a un Job actif
+    const activeJob = await getActiveJob();
+    if (!activeJob.success || !activeJob.job) {
+        console.warn('[Background] Pas de Job actif');
+        return { 
+            success: false, 
+            error: 'NO_ACTIVE_JOB',
+            message: 'Veuillez d\'abord sélectionner une Fiche de Poste'
+        };
+    }
+
+    // Récupérer le modèle et les réglages IA
+    const settingsData = await chrome.storage.local.get(['pawz_settings', 'pawz_active_weights', 'pawz_active_preset_name']);
+    const settings = settingsData.pawz_settings || {};
+    const weights = settingsData.pawz_active_weights || null;
+    const presetName = settingsData.pawz_active_preset_name || 'Par défaut';
+    
+    const model = settings.selected_model || 'fast';
+    const tuningHash = weights ? Object.values(weights).join('-') : null;
+
+    let base64Data = null;
+    let textContent = null;
+    let payloadType = 'base64';
+    let sourceUrl = payload.pdf_url || sender.tab?.url || 'pdf_upload';
+
+    try {
+        if (payload.pdf_base64) {
+            // PDF déjà en Base64 (envoyé par content script)
+            base64Data = payload.pdf_base64;
+            console.log('[Background] PDF Base64 reçu, taille:', base64Data.length);
+        } else if (payload.pdf_url && payload.pdf_url.startsWith('http')) {
+            // PDF distant (HTTP/HTTPS) : fetch et conversion
+            console.log('[Background] Fetch PDF distant:', payload.pdf_url);
+            
+            try {
+                const response = await fetch(payload.pdf_url, {
+                    headers: {
+                        'Accept': 'application/pdf'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                base64Data = await blobToBase64(blob);
+                console.log('[Background] PDF distant converti, taille:', base64Data.length);
+            } catch (fetchError) {
+                console.error('[Background] Fetch PDF échoué:', fetchError);
+                // Fallback : utiliser le texte extrait si disponible
+                if (payload.extracted_text) {
+                    console.log('[Background] Fallback sur texte extrait');
+                    textContent = payload.extracted_text;
+                    payloadType = 'text';
+                } else {
+                    throw new Error(`Impossible de télécharger le PDF: ${fetchError.message}`);
+                }
+            }
+        } else if (payload.pdf_url && payload.pdf_url.startsWith('file:')) {
+            // PDF local : utiliser le texte extrait (le background ne peut pas accéder aux fichiers locaux)
+            if (payload.extracted_text) {
+                console.log('[Background] PDF local - utilisation du texte extrait');
+                textContent = payload.extracted_text;
+                payloadType = 'text';
+            } else {
+                return { 
+                    success: false, 
+                    error: 'Pour les PDF locaux, le texte doit être extrait par le content script' 
+                };
+            }
+        } else if (payload.extracted_text) {
+            // Fallback texte
+            textContent = payload.extracted_text;
+            payloadType = 'text';
+        } else {
+            return { success: false, error: 'Aucune donnée PDF fournie' };
+        }
+
+        // Générer un ID unique
+        const candidateId = `cand_${generateUUID()}`;
+
+        // Ajouter à la queue
+        const result = await addCandidate({
+            id: candidateId,
+            jobId: activeJob.job.id,
+            sourceUrl: sourceUrl,
+            sourceType: payload.source_type || 'pdf',
+            payloadType: payloadType,
+            payloadContent: payloadType === 'base64' ? base64Data : textContent,
+            model: model,
+            tuningHash: tuningHash,
+            tuningName: presetName
+        });
+
+        if (result.success) {
+            setTimeout(() => processQueue(), 100);
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error('[Background] Erreur ajout PDF:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Convertit un Blob en Base64 (sans le préfixe data:...)
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            // Retirer le préfixe "data:application/pdf;base64,"
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
 }
 
 /**
