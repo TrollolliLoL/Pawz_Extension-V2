@@ -78,8 +78,10 @@ export async function processQueue() {
         console.log(`[Queue] Lancement de ${toProcess.length} analyse(s)...`);
 
         for (const candidate of toProcess) {
-            // Passer en PROCESSING immédiatement
-            await updateCandidateStatus(candidate.id, 'processing');
+            // Passer en PROCESSING immédiatement avec timestamp
+            await updateCandidateStatus(candidate.id, 'processing', {
+                timestamp_processing: timestamp()
+            });
 
             // Lancer l'analyse sans attendre (parallèle)
             analyzeCandidate(candidate, jobs).catch(err => {
@@ -151,8 +153,8 @@ async function analyzeCandidate(candidate, jobs) {
         const tuningData = await chrome.storage.local.get('pawz_active_weights');
         const weights = tuningData.pawz_active_weights;
 
-        // 4. Appeler l'IA Gemini avec les poids
-        const result = await GeminiClient.analyzeCandidate(payload, job, weights);
+        // 4. Appeler l'IA Gemini avec les poids ET le modèle stocké dans le candidat
+        const result = await GeminiClient.analyzeCandidate(payload, job, weights, candidate.model);
 
         // 5. Vérifier que le candidat existe toujours (pas supprimé pendant l'analyse)
         const stillExists = await checkCandidateExists(candidate.id);
@@ -274,24 +276,28 @@ export async function handleAlarm(alarm) {
 
 /**
  * Vérifie et reset les items coincés en PROCESSING.
- * (Ex: crash pendant l'analyse)
+ * (Ex: crash pendant l'analyse, Service Worker endormi)
  */
 async function checkStuckItems() {
     const data = await chrome.storage.local.get('pawz_candidates');
     const candidates = data.pawz_candidates || [];
     const now = timestamp();
-    const STUCK_THRESHOLD = 5 * 60; // 5 minutes
+    const STUCK_THRESHOLD = 3 * 60; // 3 minutes (API timeout = 2min)
 
     let modified = false;
 
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
         if (c.status === 'processing') {
-            const processingTime = now - (c.timestamp_added || 0);
+            // Utiliser timestamp_processing si disponible, sinon timestamp_added
+            const startTime = c.timestamp_processing || c.timestamp_added || 0;
+            const processingTime = now - startTime;
+            
             if (processingTime > STUCK_THRESHOLD) {
-                console.log(`[Queue] Item coincé détecté: ${c.id}`);
+                console.log(`[Queue] Item coincé détecté: ${c.id} (${Math.round(processingTime/60)}min)`);
                 candidates[i].status = 'pending';
                 candidates[i].retry_count = (c.retry_count || 0) + 1;
+                delete candidates[i].timestamp_processing; // Reset
                 modified = true;
             }
         }
