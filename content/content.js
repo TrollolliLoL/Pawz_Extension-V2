@@ -42,15 +42,23 @@
     }
 
     /**
-     * Initialise le mode PDF (UI simplifiée)
+     * Initialise le mode PDF (avec mini-sidebar comme le web)
      */
+    let _pdfShadow = null;
+    let _pdfBtn = null;
+    let _pdfSidebar = null;
+    let _currentPdfContext = null;
+    
     function initPdfMode(pdfContext) {
         console.log('[Pawz] Mode PDF activé:', pdfContext);
+        
+        // Stocker le contexte pour les listeners
+        _currentPdfContext = pdfContext;
         
         // Éviter les doublons
         if (document.getElementById('pawz-pdf-trigger')) return;
         
-        // Créer une pastille simple pour les PDF
+        // Créer le host
         const host = document.createElement('div');
         host.id = 'pawz-pdf-trigger';
         host.style.cssText = `
@@ -61,14 +69,14 @@
         `;
         document.body.appendChild(host);
         
-        const shadow = host.attachShadow({ mode: 'open' });
+        _pdfShadow = host.attachShadow({ mode: 'open' });
         
         // Styles
         const style = document.createElement('style');
         style.textContent = `
             .pawz-pdf-btn {
-                width: 70px;
-                height: 70px;
+                width: 60px;
+                height: 60px;
                 background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
                 border-radius: 50%;
                 cursor: pointer;
@@ -78,7 +86,7 @@
                 justify-content: center;
                 border: 3px solid white;
                 transition: transform 0.2s, box-shadow 0.2s;
-                font-size: 28px;
+                font-size: 24px;
             }
             .pawz-pdf-btn:hover {
                 transform: scale(1.1);
@@ -87,7 +95,6 @@
             .pawz-pdf-btn.loading {
                 opacity: 0.7;
                 pointer-events: none;
-                animation: pulse 1s infinite;
             }
             .pawz-pdf-btn.success {
                 background: linear-gradient(135deg, #059669 0%, #10B981 100%);
@@ -95,50 +102,332 @@
             .pawz-pdf-btn.error {
                 background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
             }
-            @keyframes pulse {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.05); }
+            
+            /* Mini Sidebar */
+            .pawz-pdf-sidebar {
+                position: absolute;
+                bottom: 70px;
+                right: 0;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                padding: 8px;
+                min-width: 180px;
+                opacity: 0;
+                transform: translateY(10px);
+                pointer-events: none;
+                transition: opacity 0.2s, transform 0.2s;
+            }
+            .pawz-pdf-sidebar.open {
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
+            .sidebar-btn {
+                display: block;
+                width: 100%;
+                padding: 10px 12px;
+                margin: 4px 0;
+                border: none;
+                border-radius: 8px;
+                font-size: 13px;
+                cursor: pointer;
+                text-align: left;
+                transition: background 0.15s;
+            }
+            .btn-analyze {
+                background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+                color: white;
+            }
+            .btn-analyze:hover {
+                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+            }
+            .btn-view {
+                background: #F3F4F6;
+                color: #374151;
+            }
+            .btn-view:hover {
+                background: #E5E7EB;
+            }
+            .btn-history {
+                background: #FEF3C7;
+                color: #92400E;
+            }
+            .btn-history:hover {
+                background: #FDE68A;
+            }
+            .sidebar-info {
+                padding: 8px 12px;
+                font-size: 11px;
+                color: #6B7280;
+                text-align: center;
             }
         `;
-        shadow.appendChild(style);
+        _pdfShadow.appendChild(style);
         
-        // Bouton
-        const btn = document.createElement('div');
-        btn.className = 'pawz-pdf-btn';
-        btn.innerHTML = '📄';
-        btn.title = 'Analyser ce PDF';
-        shadow.appendChild(btn);
+        // Bouton principal
+        _pdfBtn = document.createElement('div');
+        _pdfBtn.className = 'pawz-pdf-btn';
+        _pdfBtn.innerHTML = '📄';
+        _pdfBtn.title = 'Analyser ce PDF';
+        _pdfShadow.appendChild(_pdfBtn);
         
-        // Click handler
-        btn.addEventListener('click', () => launchPdfAnalysis(pdfContext, btn));
+        // Mini sidebar
+        _pdfSidebar = document.createElement('div');
+        _pdfSidebar.className = 'pawz-pdf-sidebar';
+        _pdfShadow.appendChild(_pdfSidebar);
+        
+        // Click sur le bouton = toggle sidebar
+        _pdfBtn.addEventListener('click', () => togglePdfSidebar(pdfContext));
+        
+        // Fermer si clic en dehors
+        document.addEventListener('click', (e) => {
+            if (!host.contains(e.target)) {
+                _pdfSidebar.classList.remove('open');
+            }
+        });
+    }
+    
+    /**
+     * Toggle la mini-sidebar PDF et met à jour les boutons
+     */
+    async function togglePdfSidebar(pdfContext) {
+        if (_pdfSidebar.classList.contains('open')) {
+            _pdfSidebar.classList.remove('open');
+            return;
+        }
+        
+        // Mettre à jour les boutons selon le contexte
+        await updatePdfSidebarButtons(pdfContext);
+        _pdfSidebar.classList.add('open');
+    }
+    
+    // ============================================================================
+    // PDF HELPER - Conversion Blob vers Base64
+    // ============================================================================
+    
+    function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+    
+    /**
+     * Génère un hash simple des poids de tuning
+     */
+    function generatePdfTuningHash(weights) {
+        if (!weights) return null;
+        return Object.values(weights).join('-');
+    }
+    
+    /**
+     * Compare deux hashes de tuning
+     */
+    function isPdfSameTuning(hash1, hash2) {
+        if (!hash1 && !hash2) return true;
+        if (!hash1 || !hash2) return false;
+        return hash1 === hash2;
     }
 
     /**
-     * Lance l'analyse d'un PDF
+     * Met à jour les boutons de la sidebar PDF (aligné sur le Web)
+     */
+    async function updatePdfSidebarButtons(pdfContext) {
+        _pdfSidebar.innerHTML = '';
+        
+        const currentUrl = pdfContext.url;
+        const circumstances = await getPdfCircumstances();
+        
+        if (!circumstances) {
+            _pdfSidebar.innerHTML = '<div class="sidebar-info">Configurez un job et une clé API dans Pawz.</div>';
+            return;
+        }
+        
+        // Chercher les analyses existantes pour cette URL
+        const analyses = await getAnalysesForPdfUrl(currentUrl);
+        
+        // Chercher une analyse exacte (même job, model, tuning)
+        const exactMatch = analyses.find(a => {
+            const sameJob = a.job_id === circumstances.job_id;
+            const analysisModel = a.model || 'pro';
+            const sameModel = analysisModel === circumstances.model;
+            const sameTuning = isPdfSameTuning(a.tuning_hash, circumstances.tuning_hash);
+            return sameJob && sameModel && sameTuning;
+        });
+        
+        if (exactMatch) {
+            // ========================================
+            // CAS 3 : "Déjà Vu" (Exact Match)
+            // ========================================
+            const btnView = document.createElement('button');
+            btnView.className = 'sidebar-btn btn-view';
+            btnView.textContent = '👁️ Voir l\'analyse';
+            btnView.addEventListener('click', () => viewPdfAnalysis(exactMatch.id));
+            _pdfSidebar.appendChild(btnView);
+            
+            if (analyses.length > 1) {
+                const btnHistory = document.createElement('button');
+                btnHistory.className = 'sidebar-btn btn-history';
+                btnHistory.textContent = `📂 Analyses précédentes (${analyses.length})`;
+                btnHistory.addEventListener('click', () => openPdfHistory(currentUrl));
+                _pdfSidebar.appendChild(btnHistory);
+            }
+            
+        } else if (analyses.length > 0) {
+            // ========================================
+            // CAS 2 : "Contexte Différent"
+            // ========================================
+            const btnAnalyze = document.createElement('button');
+            btnAnalyze.className = 'sidebar-btn btn-analyze';
+            btnAnalyze.textContent = '🚀 Nouvelle analyse';
+            btnAnalyze.addEventListener('click', () => launchPdfAnalysis(pdfContext, _pdfBtn));
+            _pdfSidebar.appendChild(btnAnalyze);
+            
+            const btnHistory = document.createElement('button');
+            btnHistory.className = 'sidebar-btn btn-history';
+            btnHistory.textContent = `📂 Analyses précédentes (${analyses.length})`;
+            btnHistory.addEventListener('click', () => openPdfHistory(currentUrl));
+            _pdfSidebar.appendChild(btnHistory);
+            
+        } else {
+            // ========================================
+            // CAS 1 : "Nouveau" (Jamais analysé)
+            // ========================================
+            const btnAnalyze = document.createElement('button');
+            btnAnalyze.className = 'sidebar-btn btn-analyze';
+            btnAnalyze.textContent = '🚀 Lancer l\'analyse';
+            btnAnalyze.addEventListener('click', () => launchPdfAnalysis(pdfContext, _pdfBtn));
+            _pdfSidebar.appendChild(btnAnalyze);
+        }
+    }
+    
+    async function getPdfCircumstances() {
+        try {
+            const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_settings', 'pawz_active_weights']);
+            const jobs = data.pawz_jobs || [];
+            const settings = data.pawz_settings || {};
+            const weights = data.pawz_active_weights || null;
+            const activeJob = jobs.find(j => j.active === true);
+            
+            if (!activeJob || !settings.api_key) return null;
+            
+            return {
+                job_id: activeJob.id,
+                model: settings.selected_model || 'fast',
+                api_key: settings.api_key,
+                tuning_hash: generatePdfTuningHash(weights)
+            };
+        } catch (e) {
+            console.error("[Pawz] Error getting PDF circumstances:", e);
+            return null;
+        }
+    }
+    
+    async function getAnalysesForPdfUrl(url) {
+        try {
+            const data = await chrome.storage.local.get('pawz_candidates');
+            const candidates = data.pawz_candidates || [];
+            return candidates.filter(c => c.source_url === url);
+        } catch (e) {
+            return [];
+        }
+    }
+    
+    function viewPdfAnalysis(analysisId) {
+        _pdfSidebar.classList.remove('open');
+        chrome.runtime.sendMessage({
+            action: 'OPEN_ANALYSIS',
+            analysisId: analysisId
+        });
+    }
+    
+    function openPdfHistory(url) {
+        _pdfSidebar.classList.remove('open');
+        chrome.runtime.sendMessage({
+            action: 'OPEN_ANALYSES_FOR_URL',
+            url: url
+        });
+    }
+    
+    // Écouter les changements de storage pour rafraîchir la sidebar
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && _currentPdfContext) {
+            if (changes.pawz_candidates || changes.pawz_jobs || changes.pawz_settings) {
+                // Rafraîchir si la sidebar est ouverte
+                if (_pdfSidebar && _pdfSidebar.classList.contains('open')) {
+                    updatePdfSidebarButtons(_currentPdfContext);
+                }
+            }
+        }
+    });
+
+    /**
+     * Lance l'analyse d'un PDF - Capture Binaire Universelle
      */
     async function launchPdfAnalysis(pdfContext, btn) {
-        console.log('[Pawz] Lancement analyse PDF...', pdfContext);
+        console.log('[Pawz] Lancement analyse PDF (Capture Binaire)...', pdfContext);
+        
+        // Fermer la sidebar
+        if (_pdfSidebar) _pdfSidebar.classList.remove('open');
         
         btn.classList.add('loading');
         btn.innerHTML = '⏳';
         
         try {
-            // Extraire le texte visible (le viewer PDF de Chrome met le texte dans le body)
-            const extractedText = document.body?.innerText?.trim() || '';
-            console.log('[Pawz] Texte extrait, longueur:', extractedText.length);
+            // ============================================
+            // CAPTURE BINAIRE UNIVERSELLE : Fetch + Base64
+            // ============================================
+            console.log('[Pawz] Fetch du PDF:', pdfContext.url);
             
-            // Construire le payload
+            let pdfBase64 = null;
+            
+            try {
+                const response = await fetch(pdfContext.url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                
+                // Vérifier que c'est bien un PDF
+                if (!blob.type.includes('pdf') && blob.type !== 'application/octet-stream') {
+                    console.warn('[Pawz] Type MIME inattendu:', blob.type);
+                }
+                
+                pdfBase64 = await blobToBase64(blob);
+                console.log('[Pawz] PDF capturé en Base64, taille:', pdfBase64.length);
+                
+            } catch (fetchError) {
+                console.error('[Pawz] Erreur fetch PDF:', fetchError);
+                
+                // Message d'erreur explicite selon le type
+                let errorMsg = '';
+                if (pdfContext.type === 'local') {
+                    errorMsg = '❌ Accès refusé au PDF local.\n\n' +
+                        'Pour analyser les PDF locaux :\n' +
+                        '1. Allez dans chrome://extensions\n' +
+                        '2. Cliquez sur "Détails" de Pawz\n' +
+                        '3. Activez "Autoriser l\'accès aux URL de fichiers"';
+                } else {
+                    errorMsg = `❌ Impossible de télécharger le PDF.\n\nErreur: ${fetchError.message}\n\nCela peut être dû à une restriction CORS du serveur.`;
+                }
+                
+                alert(errorMsg);
+                throw fetchError;
+            }
+            
+            // Construire le payload avec le Base64
             const payload = {
                 pdf_url: pdfContext.url,
+                pdf_base64: pdfBase64,
                 source_type: pdfContext.type
             };
             
-            // Ajouter le texte extrait comme fallback
-            if (extractedText && extractedText.length > 100) {
-                payload.extracted_text = extractedText.substring(0, 50000);
-            }
-            
-            console.log('[Pawz] Envoi au background...');
+            console.log('[Pawz] Envoi au background avec Base64...');
             
             const response = await chrome.runtime.sendMessage({
                 action: 'ADD_PDF_CANDIDATE',
@@ -167,7 +456,7 @@
             setTimeout(() => {
                 btn.classList.remove('error');
                 btn.innerHTML = '📄';
-            }, 2000);
+            }, 3000);
         }
     }
 
