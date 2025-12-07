@@ -1621,7 +1621,7 @@
      * @returns {Promise<{valid: boolean, error?: string}>}
      */
     async function testApiKey(apiKey) {
-        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         
         try {
             const response = await fetch(testUrl, {
