@@ -339,7 +339,9 @@ async function getAnalysesForUrl(url) {
     try {
         const data = await chrome.storage.local.get('pawz_candidates');
         const candidates = data.pawz_candidates || [];
-        return candidates.filter(c => c.source_url === url && c.status === 'completed');
+        // Retourne TOUTES les analyses pour cette URL (pending, processing, completed, failed)
+        // Évite les doublons si une analyse est déjà en cours
+        return candidates.filter(c => c.source_url === url);
     } catch (e) {
         console.error("[Pawz] Error getting analyses:", e);
         return [];
