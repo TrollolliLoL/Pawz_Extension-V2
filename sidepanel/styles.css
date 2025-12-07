@@ -1955,3 +1955,277 @@ body {
   animation: pulse 1.5s ease-in-out infinite;
   color: #6366f1;
 }
+
+/* ================================================ */
+/* SOURCING OVERLAY (Compréhension du besoin)       */
+/* ================================================ */
+
+/* Keywords Tags */
+.keywords-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.keyword-tag {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.keyword-tag:hover {
+  background: #e0f2fe;
+  transform: scale(1.05);
+}
+
+.keyword-tag.hard-skill {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.keyword-tag.soft-skill {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+
+.keyword-tag.certification {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.keyword-tag.title {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: white;
+  font-weight: 600;
+}
+
+/* Boolean Query Box */
+.boolean-query-box {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+  overflow-x: auto;
+  position: relative;
+}
+
+.boolean-query-box::before {
+  content: '🔍 Requête LinkedIn :';
+  display: block;
+  color: #64748b;
+  font-family: inherit;
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.boolean-query-box code {
+  color: #a5f3fc;
+}
+
+/* Summary Content */
+.summary-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.summary-content .summary-section {
+  margin-bottom: 12px;
+}
+
+.summary-content .summary-label {
+  font-weight: 600;
+  color: #1e3a5f;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.summary-content .summary-text {
+  color: #4b5563;
+}
+
+/* Stack List */
+.stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stack-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.stack-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stack-item-emoji {
+  font-size: 18px;
+}
+
+.stack-item-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #111;
+}
+
+.stack-item-definition {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-style: italic;
+}
+
+.stack-item-usage {
+  font-size: 12px;
+  color: #374151;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.stack-item-usage::before {
+  content: '→ ';
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.stack-alternatives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.stack-alternative {
+  background: #e5e7eb;
+  color: #4b5563;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+/* Tips Content */
+.tips-content {
+  font-size: 13px;
+}
+
+.tips-section {
+  margin-bottom: 12px;
+}
+
+.tips-section-title {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tips-section-title.green { color: #059669; }
+.tips-section-title.red { color: #dc2626; }
+.tips-section-title.blue { color: #2563eb; }
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tips-list li {
+  font-size: 12px;
+  color: #4b5563;
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+}
+
+.tips-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #9ca3af;
+}
+
+/* Sourcing Result Card (dans understand block) */
+.sourcing-result-card {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sourcing-result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sourcing-result-icon {
+  font-size: 28px;
+}
+
+.sourcing-result-content {
+  flex: 1;
+}
+
+.sourcing-result-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #065f46;
+  margin-bottom: 2px;
+}
+
+.sourcing-result-subtitle {
+  font-size: 11px;
+  color: #059669;
+}
+
+.sourcing-result-arrow {
+  color: #059669;
+  font-size: 18px;
+}
+
+/* Loading state for understand button */
+.btn-understand.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-understand.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}

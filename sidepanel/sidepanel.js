@@ -548,21 +548,28 @@
     function handleBackNavigation() {
         console.log("[Nav] Back shortcut triggered");
 
-        // 1. DETAIL OVERLAY
+        // 1. DETAIL OVERLAY (Candidat)
         const detailOverlay = document.getElementById('detail-overlay');
         if (detailOverlay && !detailOverlay.classList.contains('hidden')) {
             document.getElementById('btn-close-detail')?.click();
             return;
         }
 
-        // 2. SETTINGS OVERLAY
+        // 2. SOURCING OVERLAY (Compréhension du besoin)
+        const sourcingOverlay = document.getElementById('sourcing-overlay');
+        if (sourcingOverlay && !sourcingOverlay.classList.contains('hidden')) {
+            document.getElementById('btn-close-sourcing')?.click();
+            return; // Retour à la fiche de poste, pas à la liste
+        }
+
+        // 3. SETTINGS OVERLAY
         const settingsOverlay = document.getElementById('settings-overlay');
         if (settingsOverlay && !settingsOverlay.classList.contains('hidden')) {
             document.getElementById('btn-back-settings')?.click();
             return;
         }
 
-        // 3. JOB EDIT VIEW (Back to List)
+        // 4. JOB EDIT VIEW (Back to List)
         const jobEditView = document.getElementById('job-edit-view');
         if (jobEditView && !jobEditView.classList.contains('hidden')) {
             document.getElementById('btn-back-jobs')?.click();
@@ -695,6 +702,14 @@
         });
 
         document.addEventListener('keydown', (e) => {
+            // Escape - fermer les overlays
+            if (e.key === 'Escape') {
+                const tag = document.activeElement?.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                    e.preventDefault();
+                    handleBackNavigation();
+                }
+            }
             // Backspace quand pas dans un input
             if (e.key === 'Backspace' && _searchViewMode === 'EDIT') {
                 const tag = document.activeElement?.tagName;
@@ -707,8 +722,7 @@
 
         setupFormListeners();
 
-        // Bouton "Analyser ma fiche de poste"
-        // Bouton "Analyser ma fiche de poste"
+        // Bouton "Analyser ma fiche de poste" - Lance l'analyse Sourcing
         const btnUnderstand = document.getElementById('btn-understand');
         if (btnUnderstand) {
             btnUnderstand.addEventListener('click', async () => {
@@ -725,44 +739,37 @@
                 }
 
                 // Loading State
-                const originalText = btnUnderstand.textContent;
-                btnUnderstand.textContent = "Magie en cours... 🔮";
+                btnUnderstand.classList.add('loading');
                 btnUnderstand.disabled = true;
-                btnUnderstand.style.opacity = 0.7;
 
                 try {
-                    // Send to background
+                    // Send to background - Analyse Sourcing (modèle PRO forcé)
                     const response = await chrome.runtime.sendMessage({
-                        action: 'ANALYZE_JOB',
-                        brief: briefText
+                        action: 'ANALYZE_JOB_SOURCING',
+                        jobId: _editingJobId
                     });
 
                     if (response && response.success && response.data) {
-                        // Success
-                        const summary = response.data.summary;
+                        // Success - Rafraîchir le job depuis le storage
+                        const data = await chrome.storage.local.get('pawz_jobs');
+                        _allJobs = data.pawz_jobs || [];
                         
-                        // Update Job Data
-                        const jobIndex = _allJobs.findIndex(j => j.id === _editingJobId);
-                        if (jobIndex !== -1) {
-                            _allJobs[jobIndex].ai_summary = summary;
-                            await chrome.storage.local.set({ pawz_jobs: _allJobs });
-                            
-                            // Update UI
-                            updateUnderstandBlock(_allJobs[jobIndex]);
+                        const job = _allJobs.find(j => j.id === _editingJobId);
+                        if (job) {
+                            updateUnderstandBlock(job);
                         }
                     } else {
-                        console.error('[Sidepanel] Analyze Job Error:', response?.error);
+                        console.error('[Sidepanel] Analyze Sourcing Error:', response?.error);
                         alert("Erreur lors de l'analyse : " + (response?.error || 'Inconnue'));
                     }
 
                 } catch (err) {
-                    console.error('[Sidepanel] Analyze Job Exception:', err);
+                    console.error('[Sidepanel] Analyze Sourcing Exception:', err);
                     alert("Erreur technique : " + err.message);
                 } finally {
                     // Reset Button
-                    btnUnderstand.textContent = originalText;
+                    btnUnderstand.classList.remove('loading');
                     btnUnderstand.disabled = false;
-                    btnUnderstand.style.opacity = 1;
                 }
             });
         }
@@ -873,15 +880,30 @@
     function updateUnderstandBlock(job) {
         const emptyState = document.getElementById('understand-empty');
         const resultState = document.getElementById('understand-result');
-        const summaryEl = document.getElementById('understand-summary');
 
-        if (job.ai_summary) {
-            // L'analyse existe déjà
+        if (job.sourcing_data) {
+            // L'analyse Sourcing existe - afficher la carte cliquable
             emptyState.classList.add('hidden');
             resultState.classList.remove('hidden');
-            summaryEl.textContent = job.ai_summary;
+            
+            // Remplacer le contenu par une carte cliquable
+            resultState.innerHTML = `
+                <div class="sourcing-result-card" id="btn-view-sourcing">
+                    <div class="sourcing-result-icon">🎯</div>
+                    <div class="sourcing-result-content">
+                        <div class="sourcing-result-title">Analyse prête</div>
+                        <div class="sourcing-result-subtitle">Cliquez pour voir le guide de sourcing</div>
+                    </div>
+                    <div class="sourcing-result-arrow">→</div>
+                </div>
+            `;
+            
+            // Ajouter le listener pour ouvrir l'overlay
+            document.getElementById('btn-view-sourcing').addEventListener('click', () => {
+                openSourcingOverlay(job);
+            });
         } else {
-            // Pas encore analysé
+            // Pas encore analysé - afficher le bouton
             emptyState.classList.remove('hidden');
             resultState.classList.add('hidden');
         }
@@ -1804,6 +1826,159 @@
             overlay.classList.remove('visible');
             setTimeout(() => overlay.classList.add('hidden'), 300);
         });
+
+        // --- Retour Overlay Sourcing ---
+        document.getElementById('btn-close-sourcing')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeSourcingOverlay();
+        });
+    }
+
+    // ============================================================================
+    // SOURCING OVERLAY - Compréhension du besoin
+    // ============================================================================
+
+    let _currentSourcingJobId = null;
+
+    /**
+     * Ouvre l'overlay de sourcing avec les données du job.
+     */
+    function openSourcingOverlay(job) {
+        _currentSourcingJobId = job.id;
+        const overlay = document.getElementById('sourcing-overlay');
+        
+        // Remplir le contenu
+        populateSourcingOverlay(job);
+        
+        // Ouvrir avec animation
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.add('visible'), 10);
+    }
+
+    /**
+     * Ferme l'overlay sourcing et retourne à la fiche de poste.
+     */
+    function closeSourcingOverlay() {
+        const overlay = document.getElementById('sourcing-overlay');
+        overlay.classList.remove('visible');
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            // Ne pas naviguer ailleurs - on reste sur la fiche de poste
+        }, 300);
+    }
+
+    /**
+     * Remplit l'overlay sourcing avec les données.
+     */
+    function populateSourcingOverlay(job) {
+        const data = job.sourcing_data;
+        if (!data) return;
+
+        // Header
+        document.getElementById('sourcing-job-title').textContent = job.title || 'Poste';
+        document.getElementById('sourcing-one-liner').textContent = data.job_summary?.one_liner || '';
+
+        // Keywords
+        const keywordsContainer = document.getElementById('sourcing-keywords');
+        keywordsContainer.innerHTML = '';
+        
+        // Job titles (bleu marine)
+        (data.keywords?.job_titles || []).forEach(kw => {
+            keywordsContainer.innerHTML += `<span class="keyword-tag title">${kw}</span>`;
+        });
+        // Hard skills (jaune)
+        (data.keywords?.hard_skills || []).forEach(kw => {
+            keywordsContainer.innerHTML += `<span class="keyword-tag hard-skill">${kw}</span>`;
+        });
+        // Soft skills (violet)
+        (data.keywords?.soft_skills || []).forEach(kw => {
+            keywordsContainer.innerHTML += `<span class="keyword-tag soft-skill">${kw}</span>`;
+        });
+        // Certifications (vert)
+        (data.keywords?.certifications || []).forEach(kw => {
+            keywordsContainer.innerHTML += `<span class="keyword-tag certification">${kw}</span>`;
+        });
+
+        // Boolean query
+        const booleanBox = document.getElementById('sourcing-boolean');
+        if (data.keywords?.boolean_query) {
+            booleanBox.innerHTML = `<code>${data.keywords.boolean_query}</code>`;
+            booleanBox.style.display = 'block';
+        } else {
+            booleanBox.style.display = 'none';
+        }
+
+        // Summary
+        const summaryContainer = document.getElementById('sourcing-summary');
+        summaryContainer.innerHTML = '';
+        
+        if (data.job_summary?.mission) {
+            summaryContainer.innerHTML += `
+                <div class="summary-section">
+                    <span class="summary-label">🎯 Mission</span>
+                    <span class="summary-text">${data.job_summary.mission}</span>
+                </div>`;
+        }
+        if (data.job_summary?.context) {
+            summaryContainer.innerHTML += `
+                <div class="summary-section">
+                    <span class="summary-label">📍 Contexte</span>
+                    <span class="summary-text">${data.job_summary.context}</span>
+                </div>`;
+        }
+
+        // Stack Analysis
+        const stackContainer = document.getElementById('sourcing-stack');
+        stackContainer.innerHTML = '';
+        
+        (data.stack_analysis || []).forEach(item => {
+            const alternatives = (item.alternatives || []).map(alt => 
+                `<span class="stack-alternative">${alt}</span>`
+            ).join('');
+            
+            stackContainer.innerHTML += `
+                <div class="stack-item">
+                    <div class="stack-item-header">
+                        <span class="stack-item-emoji">${item.emoji || '🔧'}</span>
+                        <span class="stack-item-name">${item.name}</span>
+                    </div>
+                    <div class="stack-item-definition">${item.definition || ''}</div>
+                    <div class="stack-item-usage">${item.usage_here || ''}</div>
+                    ${alternatives ? `<div class="stack-alternatives">${alternatives}</div>` : ''}
+                </div>`;
+        });
+
+        // Tips
+        const tipsContainer = document.getElementById('sourcing-tips');
+        tipsContainer.innerHTML = '';
+        
+        if (data.sourcing_tips?.where_to_find?.length) {
+            tipsContainer.innerHTML += `
+                <div class="tips-section">
+                    <div class="tips-section-title blue">📍 Où chercher</div>
+                    <ul class="tips-list">
+                        ${data.sourcing_tips.where_to_find.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                </div>`;
+        }
+        if (data.sourcing_tips?.green_flags?.length) {
+            tipsContainer.innerHTML += `
+                <div class="tips-section">
+                    <div class="tips-section-title green">✅ Bons signaux</div>
+                    <ul class="tips-list">
+                        ${data.sourcing_tips.green_flags.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                </div>`;
+        }
+        if (data.sourcing_tips?.red_flags?.length) {
+            tipsContainer.innerHTML += `
+                <div class="tips-section">
+                    <div class="tips-section-title red">🚩 Signaux d'alerte</div>
+                    <ul class="tips-list">
+                        ${data.sourcing_tips.red_flags.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                </div>`;
+        }
     }
 
     function showApiFeedback(message, type) {

@@ -9,6 +9,7 @@
 
 import { db } from '../lib/db.js';
 import { generateUUID } from '../lib/utils.js';
+import { GeminiClient } from '../lib/gemini.js';
 import { 
     processQueue, 
     setupWatchdog, 
@@ -146,6 +147,10 @@ async function handleMessage(message, sender) {
                 return { success: false, error: e.message };
             }
 
+        case 'ANALYZE_JOB_SOURCING':
+            // Analyse approfondie d'une fiche de poste pour le sourcing
+            return await handleSourcingAnalysis(message.jobId);
+
         default:
             console.warn('[Background] Action inconnue:', message.action);
             return { success: false, error: 'Action non reconnue' };
@@ -273,6 +278,47 @@ async function retryCandidate(candidateId) {
         
         return { success: true };
     } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================================================
+// SOURCING ANALYSIS - Compréhension du besoin
+// ============================================================================
+
+/**
+ * Analyse approfondie d'une fiche de poste pour le sourcing.
+ * @param {string} jobId - ID de la fiche de poste
+ * @returns {Promise<Object>} Résultat de l'analyse
+ */
+async function handleSourcingAnalysis(jobId) {
+    console.log('[Background] Analyse Sourcing pour job:', jobId);
+    
+    try {
+        // 1. Récupérer la fiche de poste
+        const data = await chrome.storage.local.get('pawz_jobs');
+        const jobs = data.pawz_jobs || [];
+        const job = jobs.find(j => j.id === jobId);
+        
+        if (!job) {
+            return { success: false, error: 'Fiche de poste introuvable' };
+        }
+        
+        // 2. Appeler l'API Gemini Pro
+        const sourcingData = await GeminiClient.analyzeJobForSourcing(job);
+        
+        // 3. Sauvegarder le résultat dans la fiche de poste
+        const jobIndex = jobs.findIndex(j => j.id === jobId);
+        jobs[jobIndex].sourcing_data = sourcingData;
+        jobs[jobIndex].sourcing_timestamp = Date.now();
+        
+        await chrome.storage.local.set({ pawz_jobs: jobs });
+        
+        console.log('[Background] Analyse Sourcing terminée pour:', job.title);
+        return { success: true, data: sourcingData };
+        
+    } catch (error) {
+        console.error('[Background] Erreur Analyse Sourcing:', error);
         return { success: false, error: error.message };
     }
 }

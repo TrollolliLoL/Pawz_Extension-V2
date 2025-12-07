@@ -257,6 +257,88 @@
       </div>
     </div>
 
+    <!-- SOURCING OVERLAY (Compréhension du besoin) -->
+    <div id="sourcing-overlay" class="detail-panel hidden">
+      <div class="detail-nav">
+        <button id="btn-close-sourcing" class="back-btn">← Retour à la fiche</button>
+      </div>
+      <div class="analysis-content">
+        <div class="analysis-scroll-area">
+            <!-- EN-TÊTE -->
+            <div class="sourcing-header" style="text-align:center; margin-bottom:20px;">
+                <div class="sourcing-icon" style="font-size:48px; margin-bottom:8px;">🎯</div>
+                <h3 id="sourcing-job-title" style="margin:0; font-size:18px; font-weight:700; color:#111;">Titre du poste</h3>
+                <p id="sourcing-one-liner" style="margin:8px 0 0 0; font-size:13px; color:#6b7280; font-style:italic;">Résumé en une phrase...</p>
+            </div>
+
+            <!-- ACCORDÉON : MOTS-CLÉS (ouvert par défaut) -->
+            <div class="accordion open">
+                <div class="accordion-header">
+                    <span>🏷️ Mots-clés de Sourcing</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content">
+                    <div id="sourcing-keywords" class="keywords-container">
+                        <!-- Tags injectés par JS -->
+                    </div>
+                    <div id="sourcing-boolean" class="boolean-query-box" style="margin-top:12px;">
+                        <!-- Requête booléenne -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCORDÉON : RÉSUMÉ MÉTIER (ouvert par défaut) -->
+            <div class="accordion open">
+                <div class="accordion-header">
+                    <span>📋 Comprendre le Métier</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content">
+                    <div id="sourcing-summary" class="summary-content">
+                        <!-- Contenu injecté par JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCORDÉON : STACK TECHNIQUE -->
+            <div class="accordion open">
+                <div class="accordion-header">
+                    <span>🔧 Stack Technique Expliquée</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content">
+                    <div id="sourcing-stack" class="stack-list">
+                        <!-- Cartes stack injectées par JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCORDÉON : TIPS SOURCING (fermé par défaut) -->
+            <div class="accordion">
+                <div class="accordion-header">
+                    <span>💡 Tips de Sourcing</span>
+                    <div class="header-chevron">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+                <div class="accordion-content">
+                    <div id="sourcing-tips" class="tips-content">
+                        <!-- Tips injectés par JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="height:40px;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- SETTINGS OVERLAY -->
     <div id="settings-overlay" class="settings-overlay hidden">
       <div class="settings-nav">
