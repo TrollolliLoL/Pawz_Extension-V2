@@ -642,11 +642,19 @@
         // Rafraîchir la vue en cours
         if (_searchViewMode === 'LIST') {
             renderJobsList();
-        } else if (_editingJobId && _editingJobId !== 'new') {
-            // Si on édite un job existant, on peut refresh certaines parties
+        }
+        
+        // TOUJOURS rafraîchir la vue détail job si on est en édition
+        if (_searchViewMode === 'EDIT' && _editingJobId && _editingJobId !== 'new') {
             renderJobCandidates(_editingJobId);
+            // Aussi mettre à jour le bloc "Comprendre le besoin" si les données changent
+            const job = _allJobs.find(j => j.id === _editingJobId);
+            if (job) {
+                updateUnderstandBlock(job);
+            }
         }
 
+        // Toujours rafraîchir la vue principale des candidats
         renderCandidatesList();
         updateActiveBanner(activeJob);
     }
