@@ -208,7 +208,7 @@ async function updateMiniSidebarButtons() {
     const exactMatch = analyses.find(a => {
         const sameJob = a.job_id === circumstances.job_id;
         // Si l'analyse n'a pas de model (legacy), on considère que c'est le modèle par défaut
-        const analysisModel = a.model || 'gemini-2.0-flash';
+        const analysisModel = a.model || 'fast';
         const sameModel = analysisModel === circumstances.model;
         const sameTuning = isSameTuning(a.tuning_hash, circumstances.tuning_hash);
         
@@ -311,7 +311,7 @@ async function getCurrentCircumstances() {
 
         return {
             job_id: activeJob.id,
-            model: settings.selected_model || 'gemini-2.0-flash',
+            model: settings.selected_model || 'fast',
             api_key: settings.api_key,
             tuning_hash: generateTuningHash(weights)
         };

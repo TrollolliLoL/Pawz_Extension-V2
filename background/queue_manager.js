@@ -335,7 +335,7 @@ export async function addCandidate(params) {
             job_id: jobId,
             source_url: sourceUrl,
             source_type: sourceType,
-            model: model || 'gemini-2.0-flash',
+            model: model || 'fast',
             tuning_hash: tuningHash || null,
             tuning_name: tuningName || 'Par défaut',
             status: 'pending',

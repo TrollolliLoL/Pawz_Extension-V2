@@ -149,8 +149,8 @@
                 </select>
                 <select id="filter-model" class="filter-select">
                     <option value="">Tous les modèles</option>
-                    <option value="gemini-2.0-flash">⚡ Flash</option>
-                    <option value="gemini-2.0-flash-thinking-exp">🧠 Thinking</option>
+                    <option value="fast">⚡ Flash</option>
+                    <option value="pro">🧠 Pro</option>
                 </select>
                 <select id="filter-tuning" class="filter-select">
                     <option value="">Tous les réglages</option>
@@ -188,7 +188,7 @@
                 <div id="detail-score" class="score-display" style="font-size:48px; font-weight:800; color:#111; line-height:1;">--%</div>
                 <div id="detail-verdict" class="verdict-badge" style="display:inline-block; margin-top:8px; padding:4px 12px; border-radius:20px; background:#f3f4f6; color:#6b7280; font-size:13px; font-weight:600;">En attente</div>
             </div>
-            <!-- 3. ACCORDÉON : POINTS FORTS -->
+            <!-- 3. ACCORDÉON : POINTS FORTS (ouvert par défaut) -->
             <div class="accordion open">
                 <div class="accordion-header">
                     <span>✅ Points Forts</span>
@@ -196,13 +196,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                 </div>
-                <div class="accordion-content" style="display:block;">
+                <div class="accordion-content">
                     <ul id="detail-strengths" class="list-check" style="margin: 0; padding-left: 20px;">
                         <li>Analyse en cours...</li>
                     </ul>
                 </div>
             </div>
-            <!-- 4. ACCORDÉON : VIGILANCE -->
+            <!-- 4. ACCORDÉON : VIGILANCE (ouvert par défaut) -->
             <div class="accordion open">
                 <div class="accordion-header">
                     <span style="color: #F97316;">⚠️ Points de Vigilance</span>
@@ -210,21 +210,21 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                 </div>
-                <div class="accordion-content" style="display:block;">
+                <div class="accordion-content">
                     <ul id="detail-warnings" class="list-warn" style="margin: 0; padding-left: 20px;">
                         <li>Aucune donnée.</li>
                     </ul>
                 </div>
             </div>
-            <!-- 5. ACCORDÉON : RÉSUMÉ -->
-            <div class="accordion open">
+            <!-- 5. ACCORDÉON : RÉSUMÉ (fermé par défaut) -->
+            <div class="accordion">
                 <div class="accordion-header">
                     <span>🤖 Résumé Détaillé</span>
                     <div class="header-chevron">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                 </div>
-                <div class="accordion-content" style="display:block;">
+                <div class="accordion-content">
                     <p id="detail-summary" style="white-space: pre-line; margin:0; font-size:13px; line-height:1.5; color:#4b5563;">Le résumé apparaîtra ici.</p>
                 </div>
             </div>
@@ -316,12 +316,12 @@
           
           <!-- LISTE DÉROULÉE -->
           <div id="model-list-dropdown" class="model-list-dropdown hidden">
-            <div class="model-option selected" data-model="gemini-2.0-flash">
-              <span>⚡ Analyse Rapide (v2.0 Flash)</span>
+            <div class="model-option selected" data-model="fast">
+              <span>⚡ Analyse Rapide (Flash)</span>
               <span class="check-icon">✓</span>
             </div>
-            <div class="model-option" data-model="gemini-2.0-flash-thinking-exp">
-              <span>🧠 Analyse Thinking (v2.0 Thinking)</span>
+            <div class="model-option" data-model="pro">
+              <span>🧠 Analyse Pro (Gemini Pro)</span>
               <span class="check-icon hidden">✓</span>
             </div>
           </div>

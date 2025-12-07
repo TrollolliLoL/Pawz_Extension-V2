@@ -1357,7 +1357,7 @@
         
         // 4. Model Filter
         if (_filterModel) {
-            filtered = filtered.filter(c => (c.model || 'gemini-2.0-flash') === _filterModel);
+            filtered = filtered.filter(c => (c.model || 'fast') === _filterModel);
         }
         
         // 5. Tuning/Preset Filter
@@ -1533,8 +1533,8 @@
         if (jobTitleEl) jobTitleEl.textContent = job?.title || 'Inconnu';
         
         // Format model name for display
-        const modelName = candidate.model || 'gemini-2.0-flash';
-        const modelDisplay = modelName.includes('thinking') ? '🧠 Thinking' : '⚡ Flash';
+        const modelName = candidate.model || 'fast';
+        const modelDisplay = modelName === 'pro' ? '🧠 Pro' : '⚡ Flash';
         if (modelEl) modelEl.textContent = modelDisplay;
         
         if (tuningEl) tuningEl.textContent = candidate.tuning_name || 'Par défaut';
@@ -1599,7 +1599,7 @@
         }
 
         // Mettre à jour le modèle sélectionné
-        const selectedModel = settings.selected_model || 'gemini-2.0-flash';
+        const selectedModel = settings.selected_model || 'fast';
         document.querySelectorAll('.model-option').forEach(opt => {
             const isSelected = opt.dataset.model === selectedModel;
             opt.classList.toggle('selected', isSelected);
@@ -1621,7 +1621,7 @@
      * @returns {Promise<{valid: boolean, error?: string}>}
      */
     async function testApiKey(apiKey) {
-        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
         
         try {
             const response = await fetch(testUrl, {
@@ -1724,7 +1724,7 @@
                 const data = await chrome.storage.local.get('pawz_settings');
                 const settings = data.pawz_settings || {};
                 settings.api_key = key;
-                if (!settings.selected_model) settings.selected_model = 'gemini-2.0-flash';
+                if (!settings.selected_model) settings.selected_model = 'fast';
                 await chrome.storage.local.set({ pawz_settings: settings });
                 
                 input.value = '';

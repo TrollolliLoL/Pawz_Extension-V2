@@ -175,7 +175,7 @@ async function handleAddCandidate(payload, sender) {
     const weights = settingsData.pawz_active_weights || null;
     const presetName = settingsData.pawz_active_preset_name || 'Par défaut';
     
-    const model = settings.selected_model || 'gemini-2.0-flash';
+    const model = settings.selected_model || 'fast';
     const tuningHash = weights ? Object.values(weights).join('-') : null;
 
     // Générer un ID unique

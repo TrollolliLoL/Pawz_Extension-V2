@@ -526,7 +526,8 @@ body {
 .round-btn:hover {
   background: #e5e7eb;
 }
-.header-chevron.open {
+.header-chevron.open,
+.accordion.open .header-chevron {
   transform: rotate(180deg);
 }
 
