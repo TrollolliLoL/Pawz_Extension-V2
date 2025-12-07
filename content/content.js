@@ -357,6 +357,11 @@ function extractPageContent() {
         content = document.body.innerText.substring(0, 15000);
     }
 
+    // DEBUG: Log pour vérifier la qualité de capture
+    console.log("[Pawz] DEBUG CAPTURE - Type:", contentType);
+    console.log("[Pawz] DEBUG CAPTURE - Premiers 500 chars:", content.substring(0, 500));
+    console.log("[Pawz] DEBUG CAPTURE - Longueur totale:", content.length);
+
     if (!content || content.length < 50) return null;
 
     return {

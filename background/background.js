@@ -157,9 +157,9 @@ async function handleAddCandidate(payload, sender) {
         id: candidateId,
         jobId: activeJob.job.id,
         sourceUrl: sourceUrl,
-        sourceType: payload.sourceType || 'generic_web',
-        payloadType: payload.type || 'text',
-        payloadContent: payload.content
+        sourceType: payload.content_type || 'generic_web',
+        payloadType: 'text',
+        payloadContent: payload.content_text
     });
 
     if (result.success) {
