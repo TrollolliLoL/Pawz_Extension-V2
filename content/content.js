@@ -311,7 +311,7 @@ async function getCurrentCircumstances() {
 
         return {
             job_id: activeJob.id,
-            model: settings.selected_model || 'pro',
+            model: settings.selected_model || 'fast',
             api_key: settings.api_key,
             tuning_hash: generateTuningHash(weights)
         };

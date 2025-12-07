@@ -1599,7 +1599,7 @@
         }
 
         // Mettre à jour le modèle sélectionné
-        const selectedModel = settings.selected_model || 'pro';
+        const selectedModel = settings.selected_model || 'fast';
         document.querySelectorAll('.model-option').forEach(opt => {
             const isSelected = opt.dataset.model === selectedModel;
             opt.classList.toggle('selected', isSelected);
