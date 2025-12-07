@@ -5,48 +5,6 @@ Ce document est ta **Bible**. Il contient les règles absolues, l'architecture t
 
 ---
 
-## 1. LES COMMANDEMENTS ABSOLUS (RÈGLES D'OR)
-
-1.  **Architecture "Zéro Build" (KISS) :**
-
-    - **INTERDICTION** d'utiliser Webpack, Vite, NPM, React, Vue ou TypeScript compilé.
-    - Code en **Vanilla JS (ES Modules)** uniquement.
-    - CSS natif avec variables (`:root`).
-    - Le code doit être lisible et exécutable directement par le navigateur.
-
-2.  **Respect du Manifest V3 & Service Worker :**
-
-    - Le `background.js` est un Service Worker éphémère. Il ne doit **JAMAIS** utiliser de variables globales persistantes (elles sont effacées quand le worker s'endort).
-    - Toute persistance passe par `chrome.storage.local` (Métadonnées) ou `IndexedDB` (Fichiers lourds/PDF).
-    - Utilise une architecture **Event-Driven** (Réactive aux événements `onChanged`).
-
-3.  **Design System & UI :**
-
-    - **Identité Visuelle :** Respecte scrupuleusement le "Golden Master" (Section 3 ci-dessous) pour les couleurs, arrondis et typographies.
-    - **Logos :**
-      - Dans le Side Panel (`sidepanel.html`) : Utilise `assets/logo.svg` (Couleur).
-      - Dans la Pastille (`content.js`) : Utilise `assets/logo-blanc.svg` (Blanc sur fond bleu).
-    - **Composants :** Réutilise les classes CSS existantes (`.btn-main`, `.accordion`, `.skill-tag`) du code V1 fourni en contexte.
-
-4.  **Langue & Pédagogie :**
-
-    - Tu dois **TOUJOURS** me répondre en **FRANÇAIS**.
-    - Avant chaque action, explique-moi : "Voici ce que je vais faire (Quoi) et pourquoi (Pourquoi)".
-    - Pas de jargon inutile.
-
-5.  **Méthodologie par Phases (TICKETING) :**
-
-    - **Ne commence jamais à coder tout le projet d'un coup.**
-    - Au début, analyse tout et propose un **Plan d'Action**.
-    - Crée un fichier `DEV_BOOK.md` à la racine pour noter tes choix techniques et l'avancement.
-    - **Validation Explicite :** Avance fichier par fichier. Attends mon "OK" entre chaque étape critique.
-
-6.  **Sécurité & Robustesse :**
-    - Ne laisse jamais de clé API traîner dans le code (utilise `chrome.storage`).
-    - Gère toujours les erreurs (ex: si l'IA ne répond pas, l'extension ne doit pas planter).
-
----
-
 ## 2. ARCHITECTURE TECHNIQUE CIBLE
 
 ### STRUCTURE DES FICHIERS
