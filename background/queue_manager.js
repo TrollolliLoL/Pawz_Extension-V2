@@ -335,7 +335,7 @@ export async function addCandidate(params) {
             job_id: jobId,
             source_url: sourceUrl,
             source_type: sourceType,
-            model: model || 'fast',
+            model: model || 'pro',
             tuning_hash: tuningHash || null,
             tuning_name: tuningName || 'Par défaut',
             status: 'pending',

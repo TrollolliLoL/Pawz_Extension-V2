@@ -1357,7 +1357,7 @@
         
         // 4. Model Filter
         if (_filterModel) {
-            filtered = filtered.filter(c => (c.model || 'fast') === _filterModel);
+            filtered = filtered.filter(c => (c.model || 'pro') === _filterModel);
         }
         
         // 5. Tuning/Preset Filter
@@ -1533,7 +1533,7 @@
         if (jobTitleEl) jobTitleEl.textContent = job?.title || 'Inconnu';
         
         // Format model name for display
-        const modelName = candidate.model || 'fast';
+        const modelName = candidate.model || 'pro';
         const modelDisplay = modelName === 'pro' ? '🧠 Pro' : '⚡ Flash';
         if (modelEl) modelEl.textContent = modelDisplay;
         
@@ -1599,7 +1599,7 @@
         }
 
         // Mettre à jour le modèle sélectionné
-        const selectedModel = settings.selected_model || 'fast';
+        const selectedModel = settings.selected_model || 'pro';
         document.querySelectorAll('.model-option').forEach(opt => {
             const isSelected = opt.dataset.model === selectedModel;
             opt.classList.toggle('selected', isSelected);
@@ -1724,7 +1724,7 @@
                 const data = await chrome.storage.local.get('pawz_settings');
                 const settings = data.pawz_settings || {};
                 settings.api_key = key;
-                if (!settings.selected_model) settings.selected_model = 'fast';
+                if (!settings.selected_model) settings.selected_model = 'pro';
                 await chrome.storage.local.set({ pawz_settings: settings });
                 
                 input.value = '';
