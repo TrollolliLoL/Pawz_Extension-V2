@@ -1006,14 +1006,17 @@
         if (!container) return;
         container.innerHTML = '';
 
-        const candidates = _allCandidates.filter(c => c.job_id === jobId);
+        // Filtrer et trier par date (plus récent en premier)
+        const candidates = _allCandidates
+            .filter(c => c.job_id === jobId)
+            .sort((a, b) => (b.timestamp_added || 0) - (a.timestamp_added || 0));
 
         if (candidates.length === 0) {
             container.innerHTML = '<div class="empty-state" style="margin:10px 0"><small>Aucun candidat analysé.</small></div>';
             return;
         }
 
-        candidates.slice(0, 5).forEach(c => { // Max 5 pour la mini-liste
+        candidates.slice(0, 15).forEach(c => { // Max 15 pour la liste
             const card = document.createElement('div');
             card.className = `candidate-card status-${c.status}`;
             const name = c.candidate_name || 'Candidat';
@@ -1042,10 +1045,10 @@
             container.appendChild(card);
         });
 
-        if (candidates.length > 5) {
+        if (candidates.length > 15) {
             const more = document.createElement('small');
             more.style.cssText = 'display:block; text-align:center; color:#6b7280; margin-top:8px;';
-            more.textContent = `+ ${candidates.length - 5} autres`;
+            more.textContent = `+ ${candidates.length - 15} plus anciens`;
             container.appendChild(more);
         }
     }
