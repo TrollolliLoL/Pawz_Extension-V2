@@ -1847,3 +1847,65 @@ body {
 .filter-info.hidden {
   display: none !important;
 }
+
+/* ================================================ */
+/* ANALYSIS CONTEXT CARD (Carte détail candidat)    */
+/* ================================================ */
+.analysis-context-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.context-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.context-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.context-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.context-item.context-url {
+  grid-column: 1 / -1;
+}
+
+.context-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  word-break: break-word;
+}
+
+.context-value.link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-value.link:hover {
+  text-decoration: underline;
+}

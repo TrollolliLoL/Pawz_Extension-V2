@@ -169,18 +169,30 @@ async function handleAddCandidate(payload, sender) {
         };
     }
 
+    // Récupérer le modèle et les réglages IA
+    const settingsData = await chrome.storage.local.get(['pawz_settings', 'pawz_active_weights', 'pawz_active_preset_name']);
+    const settings = settingsData.pawz_settings || {};
+    const weights = settingsData.pawz_active_weights || null;
+    const presetName = settingsData.pawz_active_preset_name || 'Par défaut';
+    
+    const model = settings.selected_model || 'gemini-2.0-flash';
+    const tuningHash = weights ? Object.values(weights).join('-') : null;
+
     // Générer un ID unique
     const candidateId = `cand_${generateUUID()}`;
     const sourceUrl = sender.tab?.url || payload.sourceUrl || 'unknown';
 
-    // Ajouter à la queue
+    // Ajouter à la queue avec contexte complet
     const result = await addCandidate({
         id: candidateId,
         jobId: activeJob.job.id,
         sourceUrl: sourceUrl,
         sourceType: payload.content_type || 'generic_web',
         payloadType: 'text',
-        payloadContent: payload.content_text
+        payloadContent: payload.content_text,
+        model: model,
+        tuningHash: tuningHash,
+        tuningName: presetName
     });
 
     if (result.success) {

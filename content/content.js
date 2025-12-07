@@ -204,11 +204,16 @@ async function updateMiniSidebarButtons() {
     const analyses = await getAnalysesForUrl(currentUrl);
     
     // Find exact match (same job, same model, same tuning)
-    const exactMatch = analyses.find(a => 
-        a.job_id === circumstances.job_id && 
-        a.model === circumstances.model &&
-        isSameTuning(a.tuning_hash, circumstances.tuning_hash)
-    );
+    // Note: Pour les données legacy sans model/tuning_hash, on compare seulement le job_id
+    const exactMatch = analyses.find(a => {
+        const sameJob = a.job_id === circumstances.job_id;
+        // Si l'analyse n'a pas de model (legacy), on considère que c'est le modèle par défaut
+        const analysisModel = a.model || 'gemini-2.0-flash';
+        const sameModel = analysisModel === circumstances.model;
+        const sameTuning = isSameTuning(a.tuning_hash, circumstances.tuning_hash);
+        
+        return sameJob && sameModel && sameTuning;
+    });
 
     if (exactMatch) {
         // ========================================
@@ -319,7 +324,8 @@ async function getCurrentCircumstances() {
 // === STORAGE LISTENER ===
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
-        if (changes.pawz_jobs || changes.pawz_settings) {
+        // Rafraîchir si jobs, settings, tuning ou candidats changent
+        if (changes.pawz_jobs || changes.pawz_settings || changes.pawz_active_weights || changes.pawz_candidates) {
             console.log("[Pawz] Storage changed, updating trigger UI...");
             // Si la sidebar est ouverte, on rafraichit
             if (_miniSidebar && _miniSidebar.classList.contains('open')) {

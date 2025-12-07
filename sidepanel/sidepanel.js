@@ -21,6 +21,8 @@
     let _filterText = '';
     let _filterScore80 = false;
     let _filterJobId = '';
+    let _filterModel = '';
+    let _filterTuning = '';
     
     // Form Data
     let _mustCriteria = [];
@@ -369,15 +371,25 @@
         // If it's a custom preset, we should grab its values for the "active_weights"
         // If system, values from constant.
         let values = {};
-        if (TUNING_PRESETS[id]) values = TUNING_PRESETS[id];
-        else {
+        let presetName = 'Par défaut';
+        
+        if (TUNING_PRESETS[id]) {
+            values = TUNING_PRESETS[id];
+            // Get system preset name
+            const presetNames = { 'tech_rec': 'Tech Recruteur', 'permissive': 'Permissif', 'strict': 'Strict' };
+            presetName = presetNames[id] || id;
+        } else {
             const p = _tuningState.custom_presets.find(x => x.id === id);
-            if (p) values = p.values;
+            if (p) {
+                values = p.values;
+                presetName = p.name;
+            }
         }
         
         await chrome.storage.local.set({ 
             pawz_tuning: _tuningState,
-            pawz_active_weights: values
+            pawz_active_weights: values,
+            pawz_active_preset_name: presetName
         });
         
         renderPresetCards(); // Re-render to update toggles
@@ -389,7 +401,10 @@
         // If active was deleted, fallback
         if (_tuningState.active_preset === id) {
             _tuningState.active_preset = 'tech_rec';
-            await chrome.storage.local.set({ pawz_active_weights: TUNING_PRESETS['tech_rec'] });
+            await chrome.storage.local.set({ 
+                pawz_active_weights: TUNING_PRESETS['tech_rec'],
+                pawz_active_preset_name: 'Tech Recruteur'
+            });
         }
         
         await chrome.storage.local.set({ pawz_tuning: _tuningState });
@@ -582,25 +597,26 @@
             }
         }
         
-        // Handle filter by URL
+        // Handle filter by URL (exact match)
         if (changes.pawz_filter_url) {
             const url = changes.pawz_filter_url.newValue;
             if (url) {
-                // Switch to Analysis tab and set filter
+                // IMPORTANT: Fermer l'overlay de détail s'il est ouvert
+                const detailOverlay = document.getElementById('detail-overlay');
+                if (detailOverlay && !detailOverlay.classList.contains('hidden')) {
+                    detailOverlay.classList.remove('visible');
+                    detailOverlay.classList.add('hidden');
+                }
+                
+                // Switch to Analysis tab and set exact URL filter
                 document.getElementById('tab-analysis')?.click();
                 const searchInput = document.getElementById('search-candidates');
                 if (searchInput) {
-                    // Extract domain from URL for easier search
-                    try {
-                        const urlObj = new URL(url);
-                        searchInput.value = urlObj.pathname.split('/').pop() || urlObj.hostname;
-                        _filterText = searchInput.value.toLowerCase();
-                        document.getElementById('btn-clear-search')?.classList.remove('hidden');
-                        renderCandidatesList();
-                    } catch (e) {
-                        searchInput.value = url;
-                        _filterText = url.toLowerCase();
-                    }
+                    // Use exact URL for filtering
+                    searchInput.value = url;
+                    _filterText = url.toLowerCase();
+                    document.getElementById('btn-clear-search')?.classList.remove('hidden');
+                    renderCandidatesList();
                 }
                 // Clear the flag
                 chrome.storage.local.remove('pawz_filter_url');
@@ -1209,6 +1225,8 @@
         const btnClear = document.getElementById('btn-clear-search');
         const filterPills = document.querySelectorAll('.filter-pill');
         const filterJobSelect = document.getElementById('filter-job');
+        const filterModelSelect = document.getElementById('filter-model');
+        const filterTuningSelect = document.getElementById('filter-tuning');
         
         // Search Input (Live)
         searchInput?.addEventListener('input', (e) => {
@@ -1242,6 +1260,18 @@
             _filterJobId = e.target.value;
             renderCandidatesList();
         });
+        
+        // Filter by Model
+        filterModelSelect?.addEventListener('change', (e) => {
+            _filterModel = e.target.value;
+            renderCandidatesList();
+        });
+        
+        // Filter by Tuning
+        filterTuningSelect?.addEventListener('change', (e) => {
+            _filterTuning = e.target.value;
+            renderCandidatesList();
+        });
     }
     
     function updateJobFilterDropdown() {
@@ -1263,6 +1293,35 @@
         
         // Restore selection if still valid
         if (currentValue && _allJobs.find(j => j.id === currentValue)) {
+            select.value = currentValue;
+        }
+    }
+    
+    function updateTuningFilterDropdown() {
+        const select = document.getElementById('filter-tuning');
+        if (!select) return;
+        
+        // Keep current selection
+        const currentValue = select.value;
+        
+        // Collect unique tuning names from candidates
+        const tuningNames = new Set();
+        _allCandidates.forEach(c => {
+            if (c.tuning_name) tuningNames.add(c.tuning_name);
+        });
+        
+        // Clear and rebuild
+        select.innerHTML = '<option value="">Tous les réglages</option>';
+        
+        tuningNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+        });
+        
+        // Restore selection if still valid
+        if (currentValue && tuningNames.has(currentValue)) {
             select.value = currentValue;
         }
     }
@@ -1296,6 +1355,16 @@
             filtered = filtered.filter(c => c.job_id === _filterJobId);
         }
         
+        // 4. Model Filter
+        if (_filterModel) {
+            filtered = filtered.filter(c => (c.model || 'gemini-2.0-flash') === _filterModel);
+        }
+        
+        // 5. Tuning/Preset Filter
+        if (_filterTuning) {
+            filtered = filtered.filter(c => c.tuning_name === _filterTuning);
+        }
+        
         return filtered;
     }
 
@@ -1311,8 +1380,9 @@
         
         container.innerHTML = '';
         
-        // Update Job Dropdown
+        // Update Dropdowns
         updateJobFilterDropdown();
+        updateTuningFilterDropdown();
         
         // Stats sur TOUS les candidats (avant filtres)
         const allPending = _allCandidates.filter(c => ['pending','processing'].includes(c.status)).length;
@@ -1321,7 +1391,7 @@
         if (countDone) countDone.textContent = allDone;
         
         // Apply Filters
-        const hasFilters = _filterText || _filterScore80 || _filterJobId;
+        const hasFilters = _filterText || _filterScore80 || _filterJobId || _filterModel || _filterTuning;
         const candidates = hasFilters ? applyFilters(_allCandidates) : _allCandidates;
         
         // Show filter info
@@ -1405,7 +1475,7 @@
         
         // Name & Title: Check root first, then analysis
         const name = candidate.candidate_name || analysis.candidate_name || 'Candidat Inconnu';
-        const currentJob = candidate.current_position || analysis.candidate_title || 'Poste inconnu';
+        const currentJob = candidate.candidate_title || candidate.current_position || analysis.candidate_title || 'Poste inconnu';
         const initials = name.slice(0, 2).toUpperCase();
 
         // 2. Populate Header
@@ -1452,6 +1522,29 @@
         fillList(warningsList, warnings);
         
         summaryText.textContent = summary;
+        
+        // 4. Context Info
+        const job = _allJobs.find(j => j.id === candidate.job_id);
+        const jobTitleEl = document.getElementById('detail-job-title');
+        const modelEl = document.getElementById('detail-model');
+        const tuningEl = document.getElementById('detail-tuning');
+        const urlEl = document.getElementById('detail-source-url');
+        
+        if (jobTitleEl) jobTitleEl.textContent = job?.title || 'Inconnu';
+        
+        // Format model name for display
+        const modelName = candidate.model || 'gemini-2.0-flash';
+        const modelDisplay = modelName.includes('thinking') ? '🧠 Thinking' : '⚡ Flash';
+        if (modelEl) modelEl.textContent = modelDisplay;
+        
+        if (tuningEl) tuningEl.textContent = candidate.tuning_name || 'Par défaut';
+        
+        if (urlEl) {
+            const sourceUrl = candidate.source_url || '#';
+            urlEl.href = sourceUrl;
+            // Tronquer l'URL pour l'affichage
+            urlEl.textContent = sourceUrl.length > 50 ? sourceUrl.substring(0, 50) + '...' : sourceUrl;
+        }
     }
 
     function setupAccordionListeners() {
