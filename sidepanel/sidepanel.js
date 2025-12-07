@@ -1236,11 +1236,15 @@
     }
 
     function populateDetailOverlay(candidate) {
-        // 1. Data Preparation
+        // 1. Data Preparation (Fix: Use analysis object)
+        const analysis = candidate.analysis || {};
+        
         const score = candidate.score || 0;
         const verdict = candidate.verdict || 'Analysé';
-        const name = candidate.candidate_name || 'Candidat';
-        const currentJob = candidate.current_position || 'Poste inconnu';
+        
+        // Name & Title: Check root first, then analysis
+        const name = candidate.candidate_name || analysis.candidate_name || 'Candidat Inconnu';
+        const currentJob = candidate.current_position || analysis.candidate_title || 'Poste inconnu';
         const initials = name.slice(0, 2).toUpperCase();
 
         // 2. Populate Header
@@ -1252,13 +1256,13 @@
         const verdictEl = document.getElementById('detail-verdict');
         verdictEl.textContent = verdict;
         
-        // Verdict styling based on score/status (Simple logic)
+        // Verdict styling based on score/status
         verdictEl.className = 'verdict-badge'; // Reset
         if (score >= 70) verdictEl.classList.add('verdict-match');
         else if (score >= 40) verdictEl.classList.add('verdict-maybe');
         else verdictEl.classList.add('verdict-nomatch');
 
-        // 3. Populate Lists (Access static ULs)
+        // 3. Populate Lists
         const strengthsList = document.getElementById('detail-strengths');
         const warningsList = document.getElementById('detail-warnings');
         const summaryText = document.getElementById('detail-summary');
@@ -1278,16 +1282,15 @@
             });
         };
 
-        // Parse JSON if needed
-        let strengths = candidate.strengths || [];
-        let weaknesses = candidate.weaknesses || [];
-        if (typeof strengths === 'string') try { strengths = JSON.parse(strengths); } catch(e) {}
-        if (typeof weaknesses === 'string') try { weaknesses = JSON.parse(weaknesses); } catch(e) {}
+        // Data from Analysis Object
+        const strengths = analysis.strengths || [];
+        const warnings = analysis.warnings || []; // "warnings" in backend, confirmed
+        const summary = analysis.summary || "Aucun résumé disponible.";
 
         fillList(strengthsList, strengths);
-        fillList(warningsList, weaknesses);
+        fillList(warningsList, warnings);
         
-        summaryText.textContent = candidate.summary || "Aucun résumé disponible.";
+        summaryText.textContent = summary;
     }
 
     function setupAccordionListeners() {
