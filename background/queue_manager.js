@@ -31,12 +31,12 @@ let isProcessing = false;
 export async function processQueue() {
     // Éviter les exécutions parallèles
     if (isProcessing) {
-        console.log('[Queue] Déjà en cours d\'exécution, skip...');
+        console.log('[Pawz:Queue] Déjà en cours d\'exécution, skip...');
         return;
     }
 
     isProcessing = true;
-    console.log('[Queue] === Début processQueue ===');
+    console.log('[Pawz:Queue] === Début processQueue ===');
 
     try {
         // 1. Récupérer l'état actuel
@@ -48,19 +48,19 @@ export async function processQueue() {
         const processingItems = candidates.filter(c => c.status === 'processing');
         const pendingItems = candidates.filter(c => c.status === 'pending');
 
-        console.log(`[Queue] État: ${processingItems.length} en cours, ${pendingItems.length} en attente`);
+        console.log(`[Pawz:Queue] État: ${processingItems.length} en cours, ${pendingItems.length} en attente`);
 
         // 3. Calcul de capacité
         const slotsAvailable = CONFIG.MAX_CONCURRENT - processingItems.length;
 
         // 4. Conditions d'arrêt
         if (slotsAvailable <= 0) {
-            console.log('[Queue] Pool plein, attente...');
+            console.log('[Pawz:Queue] Pool plein, attente...');
             return;
         }
 
         if (pendingItems.length === 0) {
-            console.log('[Queue] Rien à traiter');
+            console.log('[Pawz:Queue] Rien à traiter');
             return;
         }
 
@@ -75,7 +75,7 @@ export async function processQueue() {
 
         // 6. Lancer les analyses
         const toProcess = sorted.slice(0, slotsAvailable);
-        console.log(`[Queue] Lancement de ${toProcess.length} analyse(s)...`);
+        console.log(`[Pawz:Queue] Lancement de ${toProcess.length} analyse(s)...`);
 
         for (const candidate of toProcess) {
             // Passer en PROCESSING immédiatement avec timestamp
@@ -85,15 +85,15 @@ export async function processQueue() {
 
             // Lancer l'analyse sans attendre (parallèle)
             analyzeCandidate(candidate, jobs).catch(err => {
-                console.error(`[Queue] Erreur analyse ${candidate.id}:`, err);
+                console.error(`[Pawz:Queue] Erreur analyse ${candidate.id}:`, err);
             });
         }
 
     } catch (error) {
-        console.error('[Queue] Erreur processQueue:', error);
+        console.error('[Pawz:Queue] Erreur processQueue:', error);
     } finally {
         isProcessing = false;
-        console.log('[Queue] === Fin processQueue ===');
+        console.log('[Pawz:Queue] === Fin processQueue ===');
     }
 }
 
@@ -109,7 +109,7 @@ async function updateCandidateStatus(candidateId, status, extraData = {}) {
     
     const index = candidates.findIndex(c => c.id === candidateId);
     if (index === -1) {
-        console.log(`[Queue] Candidat ${candidateId} non trouvé (supprimé ?)`);
+        console.log(`[Pawz:Queue] Candidat ${candidateId} non trouvé (supprimé ?)`);
         return false;
     }
 
@@ -120,7 +120,7 @@ async function updateCandidateStatus(candidateId, status, extraData = {}) {
     };
 
     await chrome.storage.local.set({ pawz_candidates: candidates });
-    console.log(`[Queue] Status ${candidateId}: ${status}`);
+    console.log(`[Pawz:Queue] Status ${candidateId}: ${status}`);
     return true;
 }
 
@@ -130,13 +130,13 @@ async function updateCandidateStatus(candidateId, status, extraData = {}) {
  * @param {Array} jobs - Liste des jobs
  */
 async function analyzeCandidate(candidate, jobs) {
-    console.log(`[Queue] Analyse candidat: ${candidate.id}`);
+    console.log(`[Pawz:Queue] Analyse candidat: ${candidate.id}`);
 
     try {
         // 1. Récupérer le payload depuis IndexedDB
         const payload = await db.getPayload(candidate.id);
         if (!payload) {
-            console.error(`[Queue] Payload introuvable pour ${candidate.id}`);
+            console.error(`[Pawz:Queue] Payload introuvable pour ${candidate.id}`);
             await markAsFailed(candidate.id, 'Données sources perdues');
             return;
         }
@@ -144,7 +144,7 @@ async function analyzeCandidate(candidate, jobs) {
         // 2. Récupérer le contexte du Job
         const job = jobs.find(j => j.id === candidate.job_id);
         if (!job) {
-            console.error(`[Queue] Job ${candidate.job_id} introuvable`);
+            console.error(`[Pawz:Queue] Job ${candidate.job_id} introuvable`);
             await markAsFailed(candidate.id, 'Fiche de poste non trouvée');
             return;
         }
@@ -159,7 +159,7 @@ async function analyzeCandidate(candidate, jobs) {
         // 5. Vérifier que le candidat existe toujours (pas supprimé pendant l'analyse)
         const stillExists = await checkCandidateExists(candidate.id);
         if (!stillExists) {
-            console.log(`[Queue] Candidat ${candidate.id} supprimé pendant l'analyse, abandon`);
+            console.log(`[Pawz:Queue] Candidat ${candidate.id} supprimé pendant l'analyse, abandon`);
             await db.deletePayload(candidate.id);
             return;
         }
@@ -176,10 +176,10 @@ async function analyzeCandidate(candidate, jobs) {
 
         // 6. FLUSH - Supprimer le payload d'IndexedDB
         await db.deletePayload(candidate.id);
-        console.log(`[Queue] ✅ Candidat ${candidate.id} analysé avec succès (Score: ${result.score})`);
+        console.log(`[Pawz:Queue] ✅ Candidat ${candidate.id} analysé avec succès (Score: ${result.score})`);
 
     } catch (error) {
-        console.error(`[Queue] Erreur analyse ${candidate.id}:`, error);
+        console.error(`[Pawz:Queue] Erreur analyse ${candidate.id}:`, error);
         await handleAnalysisError(candidate, error);
     }
 }
@@ -205,7 +205,7 @@ async function handleAnalysisError(candidate, error) {
 
     // Erreur retryable et quota de retry non atteint
     if (error.retryable && retryCount <= CONFIG.MAX_RETRY) {
-        console.log(`[Queue] Retry ${retryCount}/${CONFIG.MAX_RETRY} pour ${candidate.id}`);
+        console.log(`[Pawz:Queue] Retry ${retryCount}/${CONFIG.MAX_RETRY} pour ${candidate.id}`);
         
         await updateCandidateStatus(candidate.id, 'pending', {
             retry_count: retryCount,
@@ -239,10 +239,10 @@ async function markAsFailed(candidateId, errorMessage) {
     try {
         await db.deletePayload(candidateId);
     } catch (e) {
-        console.error('[Queue] Erreur suppression payload failed:', e);
+        console.error('[Pawz:Queue] Erreur suppression payload failed:', e);
     }
 
-    console.log(`[Queue] ❌ Candidat ${candidateId} FAILED: ${errorMessage}`);
+    console.log(`[Pawz:Queue] ❌ Candidat ${candidateId} FAILED: ${errorMessage}`);
 }
 
 /**
@@ -253,7 +253,7 @@ export function setupWatchdog() {
     chrome.alarms.create('pawz_watchdog', {
         periodInMinutes: CONFIG.WATCHDOG_INTERVAL
     });
-    console.log('[Queue] Watchdog configuré');
+    console.log('[Pawz:Queue] Watchdog configuré');
 }
 
 /**
@@ -261,7 +261,7 @@ export function setupWatchdog() {
  * @param {Object} alarm - Alarm Chrome
  */
 export async function handleAlarm(alarm) {
-    console.log(`[Queue] Alarm: ${alarm.name}`);
+    console.log(`[Pawz:Queue] Alarm: ${alarm.name}`);
 
     if (alarm.name === 'pawz_watchdog') {
         // Vérifier les items coincés en PROCESSING depuis trop longtemps
@@ -294,7 +294,7 @@ async function checkStuckItems() {
             const processingTime = now - startTime;
             
             if (processingTime > STUCK_THRESHOLD) {
-                console.log(`[Queue] Item coincé détecté: ${c.id} (${Math.round(processingTime/60)}min)`);
+                console.log(`[Pawz:Queue] Item coincé détecté: ${c.id} (${Math.round(processingTime/60)}min)`);
                 candidates[i].status = 'pending';
                 candidates[i].retry_count = (c.retry_count || 0) + 1;
                 delete candidates[i].timestamp_processing; // Reset
@@ -305,7 +305,7 @@ async function checkStuckItems() {
 
     if (modified) {
         await chrome.storage.local.set({ pawz_candidates: candidates });
-        console.log('[Queue] Items coincés réinitialisés');
+        console.log('[Pawz:Queue] Items coincés réinitialisés');
     }
 }
 
@@ -326,7 +326,7 @@ async function checkStuckItems() {
 export async function addCandidate(params) {
     const { id, jobId, sourceUrl, sourceType, payloadType, payloadContent, model, tuningHash, tuningName } = params;
 
-    console.log(`[Queue] Ajout candidat: ${id}`);
+    console.log(`[Pawz:Queue] Ajout candidat: ${id}`);
 
     try {
         // 1. Sauvegarder le payload dans IndexedDB
@@ -360,7 +360,7 @@ export async function addCandidate(params) {
         candidates.push(newCandidate);
         await chrome.storage.local.set({ pawz_candidates: candidates });
 
-        console.log(`[Queue] ✅ Candidat ${id} ajouté à la queue`);
+        console.log(`[Pawz:Queue] ✅ Candidat ${id} ajouté à la queue`);
 
         // 3. Déclencher le traitement
         // Note: Le storage.onChanged dans background.js le fera automatiquement
@@ -368,7 +368,7 @@ export async function addCandidate(params) {
         return { success: true, candidateId: id };
 
     } catch (error) {
-        console.error('[Queue] Erreur ajout candidat:', error);
+        console.error('[Pawz:Queue] Erreur ajout candidat:', error);
         // Cleanup en cas d'erreur partielle
         try {
             await db.deletePayload(id);
@@ -384,7 +384,7 @@ export async function addCandidate(params) {
  * @returns {Promise<boolean>} Succès
  */
 export async function removeCandidate(candidateId) {
-    console.log(`[Queue] Suppression candidat: ${candidateId}`);
+    console.log(`[Pawz:Queue] Suppression candidat: ${candidateId}`);
 
     try {
         // Supprimer du storage
@@ -397,11 +397,11 @@ export async function removeCandidate(candidateId) {
         // Supprimer le payload IndexedDB
         await db.deletePayload(candidateId);
 
-        console.log(`[Queue] ✅ Candidat ${candidateId} supprimé`);
+        console.log(`[Pawz:Queue] ✅ Candidat ${candidateId} supprimé`);
         return true;
 
     } catch (error) {
-        console.error('[Queue] Erreur suppression:', error);
+        console.error('[Pawz:Queue] Erreur suppression:', error);
         return false;
     }
 }

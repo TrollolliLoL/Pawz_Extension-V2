@@ -36,7 +36,7 @@
     // INIT
     // ===================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log('[Sidepanel] Init Phase 2.1 Refined...');
+        console.log('[Pawz:Sidepanel] Init...');
         
         await loadSettings();
         await refreshData();
@@ -50,7 +50,7 @@
         setupSearchFiltersListeners();
         await loadTuningSettings();
         
-        console.log('[Sidepanel] Ready.');
+        console.log('[Pawz:Sidepanel] Ready');
     });
 
     // ===================================
@@ -546,7 +546,7 @@
     }
 
     function handleBackNavigation() {
-        console.log("[Nav] Back shortcut triggered");
+        // Back navigation triggered
 
         // 1. DETAIL OVERLAY (Candidat)
         const detailOverlay = document.getElementById('detail-overlay');
@@ -1810,7 +1810,7 @@
                 document.getElementById('model-list-dropdown').classList.add('hidden');
                 document.querySelector('.expand-arrow').classList.remove('open');
 
-                console.log('[Settings] Modèle sélectionné:', model);
+                // Model selected
             });
         });
 

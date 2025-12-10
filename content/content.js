@@ -8,7 +8,7 @@
 (function() {
     'use strict';
     
-    console.log("[Pawz] Content script loaded.");
+    console.log("[Pawz:Content] Script loaded.");
 
     // ============================================================================
     // PDF DETECTION - Vérifié EN PREMIER
@@ -22,19 +22,19 @@
         
         // PDF local (file://.../*.pdf)
         if (window.location.protocol === 'file:' && urlWithoutParams.endsWith('.pdf')) {
-            console.log('[Pawz] PDF local détecté');
+            console.log('[Pawz:Content] PDF local détecté');
             return { type: 'local', url };
         }
         
         // PDF distant CDN Collective.work (avec ou sans .pdf)
         if (url.includes('cdn.collective.work')) {
-            console.log('[Pawz] PDF CDN Collective détecté');
+            console.log('[Pawz:Content] PDF CDN détecté');
             return { type: 'cdn', url };
         }
         
         // Autre PDF distant (URL se terminant par .pdf)
         if (urlWithoutParams.endsWith('.pdf') && window.location.protocol.startsWith('http')) {
-            console.log('[Pawz] PDF distant détecté');
+            console.log('[Pawz:Content] PDF distant détecté');
             return { type: 'remote', url };
         }
         
@@ -50,7 +50,7 @@
     let _currentPdfContext = null;
     
     function initPdfMode(pdfContext) {
-        console.log('[Pawz] Mode PDF activé:', pdfContext);
+        console.log('[Pawz:Content] Mode PDF activé');
         
         // Stocker le contexte pour les listeners
         _currentPdfContext = pdfContext;
@@ -370,7 +370,7 @@
      * - CDN/Remote : Fetch + Base64 dans le Content Script
      */
     async function launchPdfAnalysis(pdfContext, btn) {
-        console.log('[Pawz] Lancement analyse PDF...', pdfContext);
+        console.log('[Pawz:Content] Lancement analyse PDF...');
         
         // Fermer la sidebar
         if (_pdfSidebar) _pdfSidebar.classList.remove('open');
@@ -388,14 +388,14 @@
             // PDF LOCAL : Déléguer au Background
             // ============================================
             if (pdfContext.type === 'local') {
-                console.log('[Pawz] PDF local - délégation au background...');
+                console.log('[Pawz:Content] PDF local - délégation au background');
                 // Ne pas faire de fetch ici, le background s'en charge
             }
             // ============================================
             // PDF CDN/REMOTE : Fetch + Base64 ici
             // ============================================
             else {
-                console.log('[Pawz] PDF distant - fetch dans content script...');
+                console.log('[Pawz:Content] PDF distant - fetch local');
                 
                 try {
                     const response = await fetch(pdfContext.url);
@@ -407,29 +407,29 @@
                     const blob = await response.blob();
                     
                     if (!blob.type.includes('pdf') && blob.type !== 'application/octet-stream') {
-                        console.warn('[Pawz] Type MIME inattendu:', blob.type);
+                        console.warn('[Pawz:Content] Type MIME inattendu:', blob.type);
                     }
                     
                     const pdfBase64 = await blobToBase64(blob);
-                    console.log('[Pawz] PDF capturé en Base64, taille:', pdfBase64.length);
+                    console.log('[Pawz:Content] PDF capturé en Base64');
                     
                     payload.pdf_base64 = pdfBase64;
                     
                 } catch (fetchError) {
-                    console.error('[Pawz] Erreur fetch PDF:', fetchError);
+                    console.error('[Pawz:Content] Erreur fetch PDF:', fetchError.message);
                     alert(`❌ Impossible de télécharger le PDF.\n\nErreur: ${fetchError.message}\n\nCela peut être dû à une restriction CORS du serveur.`);
                     throw fetchError;
                 }
             }
             
-            console.log('[Pawz] Envoi au background...');
+            console.log('[Pawz:Content] Envoi au background...');
             
             const response = await chrome.runtime.sendMessage({
                 action: 'ADD_PDF_CANDIDATE',
                 payload: payload
             });
             
-            console.log('[Pawz] Réponse background:', response);
+            console.log('[Pawz:Content] Réponse:', response?.success ? 'OK' : response?.error);
             
             if (response && response.success) {
                 btn.classList.remove('loading');
@@ -453,7 +453,7 @@
             }
             
         } catch (error) {
-            console.error('[Pawz] Erreur analyse PDF:', error);
+            console.error('[Pawz:Content] Erreur analyse PDF:', error.message);
             btn.classList.remove('loading');
             btn.classList.add('error');
             btn.innerHTML = '❌';
@@ -481,7 +481,7 @@
     // WEB MODE - Code existant (exécuté seulement si PAS un PDF)
     // ============================================================================
     
-    console.log("[Pawz] Mode Web activé");
+    console.log("[Pawz:Content] Mode Web activé");
 
     // === CONFIG ===
     const TRIGGER_ID = 'pawz-trigger-root';
@@ -510,7 +510,7 @@ async function loadPosition() {
             _currentY = data[STORAGE_KEY_POS];
         }
     } catch (e) {
-        console.warn("[Pawz] Error loading position:", e);
+        // Position loading error (silent)
     }
 }
 
@@ -518,7 +518,7 @@ async function savePosition() {
     try {
         await chrome.storage.local.set({ [STORAGE_KEY_POS]: _currentY });
     } catch (e) {
-        console.warn("[Pawz] Error saving position:", e);
+        // Position saving error (silent)
     }
 }
 
@@ -774,7 +774,7 @@ function openAnalysesHistory(url) {
 async function getCurrentCircumstances() {
     try {
         const data = await chrome.storage.local.get(['pawz_jobs', 'pawz_settings', 'pawz_active_weights']);
-        console.log("[Pawz] Storage Data:", data); // DEBUG
+        // Storage data loaded
 
         const jobs = data.pawz_jobs || [];
         const settings = data.pawz_settings || {};
@@ -782,9 +782,6 @@ async function getCurrentCircumstances() {
 
         const activeJob = jobs.find(j => j.active === true);
         
-        if (!activeJob) console.warn("[Pawz] No active job found (jobs:", jobs.length, ")");
-        if (!settings.api_key) console.warn("[Pawz] No API key configured");
-
         if (!activeJob || !settings.api_key) return null;
 
         return {
@@ -794,7 +791,7 @@ async function getCurrentCircumstances() {
             tuning_hash: generateTuningHash(weights)
         };
     } catch (e) {
-        console.error("[Pawz] Error getting circumstances:", e);
+        console.error("[Pawz:Content] Error getting circumstances:", e.message);
         return null;
     }
 }
@@ -804,7 +801,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
         // Rafraîchir si jobs, settings, tuning ou candidats changent
         if (changes.pawz_jobs || changes.pawz_settings || changes.pawz_active_weights || changes.pawz_candidates) {
-            console.log("[Pawz] Storage changed, updating trigger UI...");
+            // Storage changed - refresh UI if sidebar open
             // Si la sidebar est ouverte, on rafraichit
             if (_miniSidebar && _miniSidebar.classList.contains('open')) {
                 updateMiniSidebarButtons();
@@ -821,7 +818,7 @@ async function getAnalysesForUrl(url) {
         // Évite les doublons si une analyse est déjà en cours
         return candidates.filter(c => c.source_url === url);
     } catch (e) {
-        console.error("[Pawz] Error getting analyses:", e);
+        // Error getting analyses (silent)
         return [];
     }
 }
@@ -851,11 +848,11 @@ async function launchAnalysis(circumstances) {
         if (response && response.success) {
             showSuccess();
         } else {
-            console.warn("[Pawz] Error:", response?.error);
+            console.warn("[Pawz:Content] Analyse échouée:", response?.error);
             showError();
         }
     } catch (e) {
-        console.error("[Pawz] Analysis error:", e);
+        console.error("[Pawz:Content] Erreur analyse:", e.message);
         showError();
     }
 
@@ -894,10 +891,7 @@ function extractPageContent() {
         content = document.body.innerText.substring(0, 15000);
     }
 
-    // DEBUG: Log pour vérifier la qualité de capture
-    console.log("[Pawz] DEBUG CAPTURE - Type:", contentType);
-    console.log("[Pawz] DEBUG CAPTURE - Premiers 500 chars:", content.substring(0, 500));
-    console.log("[Pawz] DEBUG CAPTURE - Longueur totale:", content.length);
+    // Capture effectuée
 
     if (!content || content.length < 50) return null;
 

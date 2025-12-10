@@ -18,21 +18,21 @@ import {
     removeCandidate 
 } from './queue_manager.js';
 
-console.log('[Background] Service Worker Started (Phase 2)');
+console.log('[Pawz:Background] Service Worker started');
 
 // ============================================================================
 // INSTALLATION & INITIALISATION
 // ============================================================================
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-    console.log('[Background] Extension Installed/Updated:', details.reason);
+    console.log('[Pawz:Background] Extension', details.reason);
     
     // Initialiser IndexedDB
     try {
         await db.init();
-        console.log('[Background] IndexedDB initialisée');
+        // IndexedDB ready
     } catch (error) {
-        console.error('[Background] Erreur init DB:', error);
+        console.error('[Pawz:Background] Erreur init DB:', error.message);
     }
 
     // Initialiser les données par défaut si première installation
@@ -51,7 +51,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 // Au démarrage du Worker (réveil)
 chrome.runtime.onStartup.addListener(async () => {
-    console.log('[Background] Chrome démarré, initialisation...');
+    console.log('[Pawz:Background] Chrome startup');
     
     try {
         await db.init();
@@ -59,7 +59,7 @@ chrome.runtime.onStartup.addListener(async () => {
         // Vérifier s'il y a des items en attente
         await processQueue();
     } catch (error) {
-        console.error('[Background] Erreur startup:', error);
+        console.error('[Pawz:Background] Erreur startup:', error.message);
     }
 });
 
@@ -68,17 +68,17 @@ chrome.runtime.onStartup.addListener(async () => {
 // ============================================================================
 
 chrome.action.onClicked.addListener(async (tab) => {
-    console.log('[Background] Icon clicked, opening Side Panel...');
+    // Opening side panel...
     try {
         await chrome.sidePanel.open({ tabId: tab.id });
-        console.log('[Background] Side Panel opened successfully.');
+        // Side panel opened
     } catch (error) {
-        console.error('[Background] Failed to open Side Panel:', error);
+        console.error('[Pawz:Background] Side Panel error:', error.message);
         // Fallback : essayer d'ouvrir globalement
         try {
             await chrome.sidePanel.open({ windowId: tab.windowId });
         } catch (fallbackError) {
-            console.error('[Background] Fallback also failed:', fallbackError);
+            console.error('[Pawz:Background] Side Panel fallback failed');
         }
     }
 });
@@ -88,13 +88,13 @@ chrome.action.onClicked.addListener(async (tab) => {
 // ============================================================================
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[Background] Message received:', message.action);
+    // Message: message.action
     
     // Traiter le message de manière asynchrone
     handleMessage(message, sender)
         .then(response => sendResponse(response))
         .catch(error => {
-            console.error('[Background] Message error:', error);
+            console.error('[Pawz:Background] Message error:', error.message);
             sendResponse({ success: false, error: error.message });
         });
     
@@ -170,7 +170,7 @@ async function handleAddCandidate(payload, sender) {
     // Vérifier qu'il y a un Job actif
     const activeJob = await getActiveJob();
     if (!activeJob.success || !activeJob.job) {
-        console.warn('[Background] Pas de Job actif');
+        // No active job
         return { 
             success: false, 
             error: 'NO_ACTIVE_JOB',
@@ -219,12 +219,12 @@ async function handleAddCandidate(payload, sender) {
  * @param {Object} sender - Expéditeur
  */
 async function handleAddPdfCandidate(payload, sender) {
-    console.log('[Background] Ajout PDF candidat:', payload.source_type, payload.pdf_url);
+    console.log('[Pawz:Background] PDF candidat:', payload.source_type);
     
     // Vérifier qu'il y a un Job actif
     const activeJob = await getActiveJob();
     if (!activeJob.success || !activeJob.job) {
-        console.warn('[Background] Pas de Job actif');
+        // No active job
         return { 
             success: false, 
             error: 'NO_ACTIVE_JOB',
@@ -250,14 +250,14 @@ async function handleAddPdfCandidate(payload, sender) {
         if (payload.pdf_base64) {
             // PDF déjà en Base64 (envoyé par content script - cas CDN/remote)
             base64Data = payload.pdf_base64;
-            console.log('[Background] PDF Base64 reçu, taille:', base64Data.length);
+            // PDF Base64 reçu
             
         } else if (payload.pdf_url && payload.pdf_url.startsWith('file:')) {
             // ============================================
             // PDF LOCAL : Le Background fait le fetch
             // (Il a les privilèges si "Autoriser l'accès aux URL de fichiers" est activé)
             // ============================================
-            console.log('[Background] Fetch PDF local:', payload.pdf_url);
+            console.log('[Pawz:Background] Fetch PDF local');
             
             try {
                 const response = await fetch(payload.pdf_url);
@@ -268,10 +268,10 @@ async function handleAddPdfCandidate(payload, sender) {
                 
                 const blob = await response.blob();
                 base64Data = await blobToBase64(blob);
-                console.log('[Background] PDF local converti en Base64, taille:', base64Data.length);
+                // PDF local converti
                 
             } catch (fetchError) {
-                console.error('[Background] Fetch PDF local échoué:', fetchError);
+                console.error('[Pawz:Background] Fetch PDF local échoué:', fetchError.message);
                 return { 
                     success: false, 
                     error: 'Impossible de lire le fichier PDF local. Vérifiez que "Autoriser l\'accès aux URL de fichiers" est activé dans chrome://extensions > Pawz > Détails.'
@@ -280,7 +280,7 @@ async function handleAddPdfCandidate(payload, sender) {
             
         } else if (payload.pdf_url && payload.pdf_url.startsWith('http')) {
             // PDF distant (HTTP/HTTPS) : fetch et conversion
-            console.log('[Background] Fetch PDF distant:', payload.pdf_url);
+            console.log('[Pawz:Background] Fetch PDF distant');
             
             try {
                 const response = await fetch(payload.pdf_url, {
@@ -295,9 +295,9 @@ async function handleAddPdfCandidate(payload, sender) {
                 
                 const blob = await response.blob();
                 base64Data = await blobToBase64(blob);
-                console.log('[Background] PDF distant converti, taille:', base64Data.length);
+                // PDF distant converti
             } catch (fetchError) {
-                console.error('[Background] Fetch PDF échoué:', fetchError);
+                console.error('[Pawz:Background] Fetch PDF échoué:', fetchError.message);
                 throw new Error(`Impossible de télécharger le PDF: ${fetchError.message}`);
             }
             
@@ -328,7 +328,7 @@ async function handleAddPdfCandidate(payload, sender) {
         return result;
 
     } catch (error) {
-        console.error('[Background] Erreur ajout PDF:', error);
+        console.error('[Pawz:Background] Erreur ajout PDF:', error.message);
         return { success: false, error: error.message };
     }
 }
