@@ -11,6 +11,47 @@
     console.log("[Pawz:Content] Script loaded.");
 
     // ============================================================================
+    // SIGNATURE DE PAGE (Détection SPA)
+    // ============================================================================
+    
+    let _lastPageSignature = null;
+    let _mutationDebounceTimer = null;
+    
+    /**
+     * Hash djb2 - Algorithme rapide et léger pour générer une signature numérique
+     * @param {string} str - Texte à hasher
+     * @returns {string} - Hash hexadécimal 8 caractères
+     */
+    function djb2Hash(str) {
+        let hash = 5381;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return (hash >>> 0).toString(16).padStart(8, '0');
+    }
+    
+    /**
+     * Calcule une signature unique de la page basée sur le contenu visible
+     * @returns {string} - Signature hexadécimale
+     */
+    function computePageSignature() {
+        // Prendre le texte visible, nettoyer et hasher
+        const text = document.body.innerText
+            .replace(/\s+/g, ' ')  // Normaliser les espaces
+            .trim()
+            .substring(0, 10000);  // Limiter pour performance
+        return djb2Hash(text);
+    }
+    
+    /**
+     * Vérifie si on est sur LinkedIn
+     */
+    function isLinkedIn() {
+        return window.location.href.includes('linkedin.com');
+    }
+
+    // ============================================================================
     // PDF DETECTION - Vérifié EN PREMIER
     // ============================================================================
 
@@ -500,6 +541,45 @@
         if (document.getElementById(TRIGGER_ID)) return;
         loadPosition().then(() => {
             createTrigger();
+            // Activer la détection SPA (sauf LinkedIn)
+            setupSpaObserver();
+        });
+    }
+    
+    /**
+     * MutationObserver pour détecter les changements de contenu (SPA)
+     * Avec debounce de 1s pour éviter le spam pendant le chargement
+     */
+    function setupSpaObserver() {
+        // Pas besoin sur LinkedIn (URL change entre profils)
+        if (isLinkedIn()) return;
+        
+        const observer = new MutationObserver(() => {
+            // Debounce : attendre 1s après le dernier changement
+            if (_mutationDebounceTimer) {
+                clearTimeout(_mutationDebounceTimer);
+            }
+            
+            _mutationDebounceTimer = setTimeout(() => {
+                const newSignature = computePageSignature();
+                
+                // Si la signature a changé, rafraîchir les boutons
+                if (newSignature !== _lastPageSignature) {
+                    _lastPageSignature = newSignature;
+                    
+                    // Rafraîchir si sidebar ouverte
+                    if (_miniSidebar && _miniSidebar.classList.contains('open')) {
+                        updateMiniSidebarButtons();
+                    }
+                }
+            }, 1000);
+        });
+        
+        // Observer les changements dans le body
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
         });
     }
 
@@ -678,8 +758,12 @@ async function updateMiniSidebarButtons() {
         return;
     }
 
-    // Check existing analyses for this URL
-    const analyses = await getAnalysesForUrl(currentUrl);
+    // Calculer la signature de la page actuelle (pour SPA)
+    const currentSignature = isLinkedIn() ? null : computePageSignature();
+    _lastPageSignature = currentSignature;
+    
+    // Check existing analyses for this URL (+ signature pour SPA)
+    const analyses = await getAnalysesForUrl(currentUrl, currentSignature);
     
     // Find exact match (same job, same model, same tuning)
     // Note: Pour les données legacy sans model/tuning_hash, on compare seulement le job_id
@@ -810,13 +894,28 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 });
 
-async function getAnalysesForUrl(url) {
+async function getAnalysesForUrl(url, signature = null) {
     try {
         const data = await chrome.storage.local.get('pawz_candidates');
         const candidates = data.pawz_candidates || [];
-        // Retourne TOUTES les analyses pour cette URL (pending, processing, completed, failed)
-        // Évite les doublons si une analyse est déjà en cours
-        return candidates.filter(c => c.source_url === url);
+        
+        // LinkedIn : filtre par URL uniquement (fiable)
+        if (isLinkedIn()) {
+            return candidates.filter(c => c.source_url === url);
+        }
+        
+        // Autres sites (SPA) : double vérification URL + Signature
+        const urlMatches = candidates.filter(c => c.source_url === url);
+        
+        // Si pas de signature fournie (ne devrait pas arriver), fallback URL
+        if (!signature) {
+            return urlMatches;
+        }
+        
+        // IMPORTANT : Sur SPA, seule la signature fait foi
+        // Si aucun candidat n'a cette signature exacte → c'est un NOUVEAU profil
+        // Les candidats legacy (sans signature) sont ignorés (pas de match possible)
+        return urlMatches.filter(c => c.content_signature === signature);
     } catch (e) {
         // Error getting analyses (silent)
         return [];
@@ -891,15 +990,17 @@ function extractPageContent() {
         content = document.body.innerText.substring(0, 15000);
     }
 
-    // Capture effectuée
-
     if (!content || content.length < 50) return null;
+
+    // Calculer la signature pour les SPA (pas LinkedIn)
+    const signature = isLinkedIn() ? null : computePageSignature();
 
     return {
         source_url: url,
         page_title: title,
         content_text: content,
         content_type: contentType,
+        content_signature: signature,
         timestamp: Date.now()
     };
 }

@@ -322,13 +322,14 @@ async function checkStuckItems() {
  * @param {string} params.sourceType - Type de source
  * @param {string} params.payloadType - Type de payload ("text" ou "base64")
  * @param {string} params.payloadContent - Contenu du payload
+ * @param {string} [params.contentSignature] - Signature hash du contenu (SPA)
  * @param {string} [params.model] - Modèle IA utilisé
  * @param {string} [params.tuningHash] - Hash des réglages IA
  * @param {string} [params.tuningName] - Nom du preset de réglage IA
  * @returns {Promise<Object>} Résultat de l'opération
  */
 export async function addCandidate(params) {
-    const { id, jobId, sourceUrl, sourceType, payloadType, payloadContent, model, tuningHash, tuningName } = params;
+    const { id, jobId, sourceUrl, sourceType, payloadType, payloadContent, contentSignature, model, tuningHash, tuningName } = params;
 
     console.log(`[Pawz:Queue] Ajout candidat: ${id}`);
 
@@ -345,6 +346,7 @@ export async function addCandidate(params) {
             job_id: jobId,
             source_url: sourceUrl,
             source_type: sourceType,
+            content_signature: contentSignature || null,
             model: model || 'pro',
             tuning_hash: tuningHash || null,
             tuning_name: tuningName || 'Par défaut',

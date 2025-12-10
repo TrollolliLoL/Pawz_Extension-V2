@@ -212,6 +212,7 @@ async function handleAddCandidate(payload, sender) {
         sourceType: payload.content_type || 'generic_web',
         payloadType: 'text',
         payloadContent: payload.content_text,
+        contentSignature: payload.content_signature || null,
         model: model,
         tuningHash: tuningHash,
         tuningName: presetName
