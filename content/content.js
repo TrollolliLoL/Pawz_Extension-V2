@@ -19,8 +19,7 @@
      * Sur ces sites, on utilise un hash du contenu pour identifier le candidat.
      */
     const SPA_DOMAINS = [
-        'app.turnover-it.com',
-        'ui.boondmanager.com'
+        'app.turnover-it.com'
     ];
     
     let _lastPageSignature = null;
