@@ -11,44 +11,87 @@
     console.log("[Pawz:Content] Script loaded.");
 
     // ============================================================================
-    // SIGNATURE DE PAGE (Détection SPA)
+    // IDENTIFICATION UNIQUE DES CANDIDATS (Signature)
     // ============================================================================
+    
+    /**
+     * Liste des domaines SPA où l'URL ne change pas entre candidats.
+     * Sur ces sites, on utilise un hash du contenu pour identifier le candidat.
+     */
+    const SPA_DOMAINS = [
+        'app.turnover-it.com',
+        'ui.boondmanager.com'
+    ];
     
     let _lastPageSignature = null;
     let _mutationDebounceTimer = null;
     
     /**
-     * Hash djb2 - Algorithme rapide et léger pour générer une signature numérique
-     * @param {string} str - Texte à hasher
-     * @returns {string} - Hash hexadécimal 8 caractères
+     * Hash djb2 - Algorithme rapide pour générer une signature numérique
      */
     function djb2Hash(str) {
         let hash = 5381;
         for (let i = 0; i < str.length; i++) {
             hash = ((hash << 5) + hash) + str.charCodeAt(i);
-            hash = hash & hash; // Convert to 32-bit integer
+            hash = hash & hash;
         }
         return (hash >>> 0).toString(16).padStart(8, '0');
     }
     
     /**
-     * Calcule une signature unique de la page basée sur le contenu visible
-     * @returns {string} - Signature hexadécimale
+     * Détecte le type de site pour adapter la stratégie d'identification
+     * @returns {'spa' | 'linkedin' | 'web'}
      */
-    function computePageSignature() {
-        // Prendre le texte visible, nettoyer et hasher
-        const text = document.body.innerText
-            .replace(/\s+/g, ' ')  // Normaliser les espaces
-            .trim()
-            .substring(0, 10000);  // Limiter pour performance
-        return djb2Hash(text);
+    function getSiteType() {
+        const hostname = window.location.hostname;
+        
+        if (SPA_DOMAINS.some(domain => hostname.includes(domain))) {
+            return 'spa';
+        }
+        if (hostname.includes('linkedin.com')) {
+            return 'linkedin';
+        }
+        return 'web';
     }
     
     /**
-     * Vérifie si on est sur LinkedIn
+     * Génère une signature unique pour identifier le candidat sur la page.
+     * 
+     * STRATÉGIE :
+     * - SPA : Hash du contenu (l'URL ne bouge pas)
+     * - LinkedIn : origin + pathname (ignorer les params de tracking)
+     * - Web : URL complète (les params ?id=123 sont importants)
+     * 
+     * @returns {string} - Signature unique
      */
-    function isLinkedIn() {
-        return window.location.href.includes('linkedin.com');
+    function getContentSignature() {
+        const siteType = getSiteType();
+        
+        switch (siteType) {
+            case 'spa':
+                // Hash du contenu visible (nettoyé)
+                const text = document.body.innerText
+                    .replace(/\d+/g, '')       // Retirer les chiffres (dates, compteurs)
+                    .replace(/\s+/g, ' ')      // Normaliser les espaces
+                    .trim()
+                    .substring(0, 10000);
+                return 'hash:' + djb2Hash(text);
+                
+            case 'linkedin':
+                // URL sans query params (éviter les ?miniProfileUrn...)
+                return 'url:' + window.location.origin + window.location.pathname;
+                
+            default: // 'web'
+                // URL complète (les params sont souvent nécessaires)
+                return 'url:' + window.location.href;
+        }
+    }
+    
+    /**
+     * Vérifie si on est sur un site SPA (nécessite MutationObserver)
+     */
+    function isSpaMode() {
+        return getSiteType() === 'spa';
     }
 
     // ============================================================================
@@ -547,12 +590,15 @@
     }
     
     /**
-     * MutationObserver pour détecter les changements de contenu (SPA)
+     * MutationObserver pour détecter les changements de contenu (SPA UNIQUEMENT)
      * Avec debounce de 1s pour éviter le spam pendant le chargement
      */
     function setupSpaObserver() {
-        // Pas besoin sur LinkedIn (URL change entre profils)
-        if (isLinkedIn()) return;
+        // PERFORMANCE : Observer actif UNIQUEMENT sur les sites SPA
+        // LinkedIn et Web classique utilisent le changement d'URL natif
+        if (!isSpaMode()) return;
+        
+        console.log('[Pawz:Content] 👁️ Mode SPA détecté - Observer activé');
         
         const observer = new MutationObserver(() => {
             // Debounce : attendre 1s après le dernier changement
@@ -561,7 +607,7 @@
             }
             
             _mutationDebounceTimer = setTimeout(() => {
-                const newSignature = computePageSignature();
+                const newSignature = getContentSignature();
                 
                 // Si la signature a changé, rafraîchir les boutons
                 if (newSignature !== _lastPageSignature) {
@@ -758,12 +804,12 @@ async function updateMiniSidebarButtons() {
         return;
     }
 
-    // Calculer la signature de la page actuelle (pour SPA)
-    const currentSignature = isLinkedIn() ? null : computePageSignature();
+    // Calculer la signature unique du candidat (adapte la stratégie selon le site)
+    const currentSignature = getContentSignature();
     _lastPageSignature = currentSignature;
     
-    // Check existing analyses for this URL (+ signature pour SPA)
-    const analyses = await getAnalysesForUrl(currentUrl, currentSignature);
+    // Chercher les analyses existantes avec cette signature exacte
+    const analyses = await getAnalysesForSignature(currentSignature);
     
     // Find exact match (same job, same model, same tuning)
     // Note: Pour les données legacy sans model/tuning_hash, on compare seulement le job_id
@@ -894,30 +940,20 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 });
 
-async function getAnalysesForUrl(url, signature = null) {
+/**
+ * Recherche les analyses existantes par signature exacte.
+ * La signature contient déjà toute l'info d'identité (hash ou URL selon le site).
+ * @param {string} signature - Signature unique du candidat
+ * @returns {Promise<Array>} - Candidats correspondants
+ */
+async function getAnalysesForSignature(signature) {
     try {
         const data = await chrome.storage.local.get('pawz_candidates');
         const candidates = data.pawz_candidates || [];
         
-        // LinkedIn : filtre par URL uniquement (fiable)
-        if (isLinkedIn()) {
-            return candidates.filter(c => c.source_url === url);
-        }
-        
-        // Autres sites (SPA) : double vérification URL + Signature
-        const urlMatches = candidates.filter(c => c.source_url === url);
-        
-        // Si pas de signature fournie (ne devrait pas arriver), fallback URL
-        if (!signature) {
-            return urlMatches;
-        }
-        
-        // IMPORTANT : Sur SPA, seule la signature fait foi
-        // Si aucun candidat n'a cette signature exacte → c'est un NOUVEAU profil
-        // Les candidats legacy (sans signature) sont ignorés (pas de match possible)
-        return urlMatches.filter(c => c.content_signature === signature);
+        // Filtrer par signature exacte
+        return candidates.filter(c => c.content_signature === signature);
     } catch (e) {
-        // Error getting analyses (silent)
         return [];
     }
 }
@@ -992,8 +1028,8 @@ function extractPageContent() {
 
     if (!content || content.length < 50) return null;
 
-    // Calculer la signature pour les SPA (pas LinkedIn)
-    const signature = isLinkedIn() ? null : computePageSignature();
+    // Signature unique pour identifier ce candidat
+    const signature = getContentSignature();
 
     return {
         source_url: url,
