@@ -31,7 +31,6 @@ let isProcessing = false;
 export async function processQueue() {
     // Éviter les exécutions parallèles
     if (isProcessing) {
-        console.log('[Pawz:Queue] Déjà en cours d\'exécution, skip...');
         return;
     }
 
@@ -101,7 +100,6 @@ async function updateCandidateStatus(candidateId, status, extraData = {}) {
     
     const index = candidates.findIndex(c => c.id === candidateId);
     if (index === -1) {
-        console.log(`[Pawz:Queue] Candidat ${candidateId} non trouvé (supprimé ?)`);
         return false;
     }
 
@@ -112,7 +110,6 @@ async function updateCandidateStatus(candidateId, status, extraData = {}) {
     };
 
     await chrome.storage.local.set({ pawz_candidates: candidates });
-    console.log(`[Pawz:Queue] Status ${candidateId}: ${status}`);
     return true;
 }
 
@@ -122,7 +119,6 @@ async function updateCandidateStatus(candidateId, status, extraData = {}) {
  * @param {Array} jobs - Liste des jobs
  */
 async function analyzeCandidate(candidate, jobs) {
-    console.log(`[Pawz:Queue] Analyse candidat: ${candidate.id}`);
 
     try {
         // 1. Récupérer le payload depuis IndexedDB
@@ -146,12 +142,7 @@ async function analyzeCandidate(candidate, jobs) {
         const weights = tuningData.pawz_active_weights;
 
         // 4. Appeler l'IA Gemini avec heartbeat pour maintenir le SW actif
-        // Le heartbeat empêche Chrome de tuer le Service Worker pendant les longues analyses
-        let heartbeatCount = 0;
-        const heartbeat = setInterval(() => {
-            heartbeatCount++;
-            console.log(`[Pawz:Queue] ⏳ Analyse en cours... (${heartbeatCount * 15}s)`);
-        }, 15000);
+        const heartbeat = setInterval(() => {}, 15000); // Keep SW alive
         
         let result;
         try {
@@ -163,7 +154,6 @@ async function analyzeCandidate(candidate, jobs) {
         // 5. Vérifier que le candidat existe toujours (pas supprimé pendant l'analyse)
         const stillExists = await checkCandidateExists(candidate.id);
         if (!stillExists) {
-            console.log(`[Pawz:Queue] Candidat ${candidate.id} supprimé pendant l'analyse, abandon`);
             await db.deletePayload(candidate.id);
             return;
         }
@@ -180,7 +170,7 @@ async function analyzeCandidate(candidate, jobs) {
 
         // 6. FLUSH - Supprimer le payload d'IndexedDB
         await db.deletePayload(candidate.id);
-        console.log(`[Pawz:Queue] ✅ Candidat ${candidate.id} analysé avec succès (Score: ${result.score})`);
+        console.log(`[Pawz:Queue] ✅ Analyse terminée - Score: ${result.score}`);
 
     } catch (error) {
         console.error(`[Pawz:Queue] Erreur analyse ${candidate.id}:`, error);
@@ -209,7 +199,6 @@ async function handleAnalysisError(candidate, error) {
 
     // Erreur retryable et quota de retry non atteint
     if (error.retryable && retryCount <= CONFIG.MAX_RETRY) {
-        console.log(`[Pawz:Queue] Retry ${retryCount}/${CONFIG.MAX_RETRY} pour ${candidate.id}`);
         
         await updateCandidateStatus(candidate.id, 'pending', {
             retry_count: retryCount,
@@ -246,7 +235,7 @@ async function markAsFailed(candidateId, errorMessage) {
         console.error('[Pawz:Queue] Erreur suppression payload failed:', e);
     }
 
-    console.log(`[Pawz:Queue] ❌ Candidat ${candidateId} FAILED: ${errorMessage}`);
+    console.log(`[Pawz:Queue] ❌ FAILED: ${errorMessage}`);
 }
 
 /**
@@ -257,7 +246,6 @@ export function setupWatchdog() {
     chrome.alarms.create('pawz_watchdog', {
         periodInMinutes: CONFIG.WATCHDOG_INTERVAL
     });
-    console.log('[Pawz:Queue] Watchdog configuré');
 }
 
 /**
@@ -298,7 +286,6 @@ async function checkStuckItems() {
             const processingTime = now - startTime;
             
             if (processingTime > STUCK_THRESHOLD) {
-                console.log(`[Pawz:Queue] Item coincé détecté: ${c.id} (${Math.round(processingTime/60)}min)`);
                 candidates[i].status = 'pending';
                 candidates[i].retry_count = (c.retry_count || 0) + 1;
                 delete candidates[i].timestamp_processing; // Reset
@@ -331,7 +318,6 @@ async function checkStuckItems() {
 export async function addCandidate(params) {
     const { id, jobId, sourceUrl, sourceType, payloadType, payloadContent, contentSignature, model, tuningHash, tuningName } = params;
 
-    console.log(`[Pawz:Queue] Ajout candidat: ${id}`);
 
     try {
         // 1. Sauvegarder le payload dans IndexedDB
@@ -366,7 +352,6 @@ export async function addCandidate(params) {
         candidates.push(newCandidate);
         await chrome.storage.local.set({ pawz_candidates: candidates });
 
-        console.log(`[Pawz:Queue] ✅ Candidat ${id} ajouté à la queue`);
 
         // 3. Déclencher le traitement
         // Note: Le storage.onChanged dans background.js le fera automatiquement
@@ -390,7 +375,6 @@ export async function addCandidate(params) {
  * @returns {Promise<boolean>} Succès
  */
 export async function removeCandidate(candidateId) {
-    console.log(`[Pawz:Queue] Suppression candidat: ${candidateId}`);
 
     try {
         // Supprimer du storage
@@ -403,7 +387,6 @@ export async function removeCandidate(candidateId) {
         // Supprimer le payload IndexedDB
         await db.deletePayload(candidateId);
 
-        console.log(`[Pawz:Queue] ✅ Candidat ${candidateId} supprimé`);
         return true;
 
     } catch (error) {

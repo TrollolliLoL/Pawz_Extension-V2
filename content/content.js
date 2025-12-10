@@ -105,19 +105,16 @@
         
         // PDF local (file://.../*.pdf)
         if (window.location.protocol === 'file:' && urlWithoutParams.endsWith('.pdf')) {
-            console.log('[Pawz:Content] PDF local détecté');
             return { type: 'local', url };
         }
         
         // PDF distant CDN Collective.work (avec ou sans .pdf)
         if (url.includes('cdn.collective.work')) {
-            console.log('[Pawz:Content] PDF CDN détecté');
             return { type: 'cdn', url };
         }
         
         // Autre PDF distant (URL se terminant par .pdf)
         if (urlWithoutParams.endsWith('.pdf') && window.location.protocol.startsWith('http')) {
-            console.log('[Pawz:Content] PDF distant détecté');
             return { type: 'remote', url };
         }
         
@@ -453,7 +450,6 @@
      * - CDN/Remote : Fetch + Base64 dans le Content Script
      */
     async function launchPdfAnalysis(pdfContext, btn) {
-        console.log('[Pawz:Content] Lancement analyse PDF...');
         
         // Fermer la sidebar
         if (_pdfSidebar) _pdfSidebar.classList.remove('open');
@@ -471,14 +467,12 @@
             // PDF LOCAL : Déléguer au Background
             // ============================================
             if (pdfContext.type === 'local') {
-                console.log('[Pawz:Content] PDF local - délégation au background');
-                // Ne pas faire de fetch ici, le background s'en charge
+                // PDF LOCAL : Déléguer au Background (qui a les privilèges)
             }
             // ============================================
             // PDF CDN/REMOTE : Fetch + Base64 ici
             // ============================================
             else {
-                console.log('[Pawz:Content] PDF distant - fetch local');
                 
                 try {
                     const response = await fetch(pdfContext.url);
@@ -494,7 +488,6 @@
                     }
                     
                     const pdfBase64 = await blobToBase64(blob);
-                    console.log('[Pawz:Content] PDF capturé en Base64');
                     
                     payload.pdf_base64 = pdfBase64;
                     
@@ -505,14 +498,10 @@
                 }
             }
             
-            console.log('[Pawz:Content] Envoi au background...');
-            
             const response = await chrome.runtime.sendMessage({
                 action: 'ADD_PDF_CANDIDATE',
                 payload: payload
             });
-            
-            console.log('[Pawz:Content] Réponse:', response?.success ? 'OK' : response?.error);
             
             if (response && response.success) {
                 btn.classList.remove('loading');

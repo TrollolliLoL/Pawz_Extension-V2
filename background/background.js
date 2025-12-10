@@ -233,7 +233,6 @@ async function handleAddCandidate(payload, sender) {
  * @param {Object} sender - Expéditeur
  */
 async function handleAddPdfCandidate(payload, sender) {
-    console.log('[Pawz:Background] PDF candidat:', payload.source_type);
     
     // Vérifier qu'il y a un Job actif
     const activeJob = await getActiveJob();
@@ -267,11 +266,7 @@ async function handleAddPdfCandidate(payload, sender) {
             // PDF Base64 reçu
             
         } else if (payload.pdf_url && payload.pdf_url.startsWith('file:')) {
-            // ============================================
-            // PDF LOCAL : Le Background fait le fetch
-            // (Il a les privilèges si "Autoriser l'accès aux URL de fichiers" est activé)
-            // ============================================
-            console.log('[Pawz:Background] Fetch PDF local');
+            // PDF LOCAL : Le Background fait le fetch (privilèges requis)
             
             try {
                 const response = await fetch(payload.pdf_url);
@@ -294,7 +289,6 @@ async function handleAddPdfCandidate(payload, sender) {
             
         } else if (payload.pdf_url && payload.pdf_url.startsWith('http')) {
             // PDF distant (HTTP/HTTPS) : fetch et conversion
-            console.log('[Pawz:Background] Fetch PDF distant');
             
             try {
                 const response = await fetch(payload.pdf_url, {
@@ -448,7 +442,6 @@ async function retryCandidate(candidateId) {
  * @returns {Promise<Object>} Résultat de l'analyse
  */
 async function handleSourcingAnalysis(jobId) {
-    console.log('[Background] Analyse Sourcing pour job:', jobId);
     
     try {
         // 1. Récupérer la fiche de poste
@@ -470,11 +463,10 @@ async function handleSourcingAnalysis(jobId) {
         
         await chrome.storage.local.set({ pawz_jobs: jobs });
         
-        console.log('[Background] Analyse Sourcing terminée pour:', job.title);
         return { success: true, data: sourcingData };
         
     } catch (error) {
-        console.error('[Background] Erreur Analyse Sourcing:', error);
+        console.error('[Pawz:Background] Erreur Sourcing:', error);
         return { success: false, error: error.message };
     }
 }
@@ -492,7 +484,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
         const hasPending = newCandidates.some(c => c.status === 'pending');
         
         if (hasPending) {
-            console.log('[Background] Nouveaux candidats PENDING détectés');
             // Petit délai pour éviter les race conditions
             setTimeout(() => processQueue(), 50);
         }
@@ -510,8 +501,6 @@ chrome.alarms.onAlarm.addListener(handleAlarm);
 // ============================================================================
 
 async function initDefaultStorage() {
-    console.log('[Background] Initializing default storage...');
-    
     const defaults = {
         pawz_jobs: [],
         pawz_candidates: [],
@@ -520,14 +509,10 @@ async function initDefaultStorage() {
             model_id: 'gemini-2.5-flash'
         }
     };
-    
     await chrome.storage.local.set(defaults);
-    console.log('[Background] Default storage set.');
 }
 
 async function runMigration() {
-    console.log('[Background] Checking for V1 -> V2 migration...');
-    
     try {
         const data = await chrome.storage.local.get([
             'pawz_search_criteria',
@@ -536,11 +521,10 @@ async function runMigration() {
 
         // Vérifier si des données V1 existent
         if (!data.pawz_search_criteria && !data.pawz_gemini_key) {
-            console.log('[Background] Pas de données V1 à migrer');
             return;
         }
 
-        console.log('[Background] Données V1 détectées, migration...');
+        console.log('[Pawz:Background] Migration V1 -> V2...');
 
         // Récupérer les données V2 existantes
         const v2Data = await chrome.storage.local.get([
@@ -554,7 +538,6 @@ async function runMigration() {
         // Migrer la clé API
         if (data.pawz_gemini_key) {
             settings.api_key = data.pawz_gemini_key;
-            console.log('[Background] Clé API migrée');
         }
 
         // Migrer les critères de recherche en Job
@@ -575,8 +558,6 @@ async function runMigration() {
             // Désactiver les autres jobs
             jobs.forEach(j => j.active = false);
             jobs.push(newJob);
-            
-            console.log('[Background] Critères migrés en Job V2');
         }
 
         // Sauvegarder les données migrées
@@ -591,11 +572,9 @@ async function runMigration() {
             'pawz_gemini_key'
         ]);
 
-        console.log('[Background] ✅ Migration V1 -> V2 terminée');
+        console.log('[Pawz:Background] ✅ Migration terminée');
 
     } catch (error) {
-        console.error('[Background] Erreur migration:', error);
+        console.error('[Pawz:Background] Erreur migration:', error);
     }
 }
-
-console.log('[Background] Listeners registered (Phase 2).');
