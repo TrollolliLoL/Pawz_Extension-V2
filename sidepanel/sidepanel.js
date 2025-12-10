@@ -33,10 +33,44 @@
     let _originalFormData = null;
 
     // ===================================
+    // KEEP ALIVE - Empêche Chrome de tuer le Service Worker
+    // ===================================
+    let _keepAlivePort = null;
+    let _keepAliveInterval = null;
+    
+    function setupKeepAlive() {
+        // Reconnecter le port toutes les 25s (Chrome tue après 30s d'inactivité)
+        function connect() {
+            try {
+                _keepAlivePort = chrome.runtime.connect({ name: 'keepAlive' });
+                _keepAlivePort.onDisconnect.addListener(() => {
+                    // Reconnexion automatique si le panneau est toujours ouvert
+                    _keepAlivePort = null;
+                });
+            } catch (e) {
+                // Extension context invalidated
+            }
+        }
+        
+        // Connexion initiale
+        connect();
+        
+        // Reconnexion périodique
+        _keepAliveInterval = setInterval(() => {
+            if (!_keepAlivePort) {
+                connect();
+            }
+        }, 25000);
+    }
+
+    // ===================================
     // INIT
     // ===================================
     document.addEventListener('DOMContentLoaded', async () => {
         console.log('[Pawz:Sidepanel] Init...');
+        
+        // Démarrer le Keep Alive en premier
+        setupKeepAlive();
         
         await loadSettings();
         await refreshData();

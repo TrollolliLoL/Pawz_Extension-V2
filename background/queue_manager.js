@@ -36,7 +36,6 @@ export async function processQueue() {
     }
 
     isProcessing = true;
-    console.log('[Pawz:Queue] === Début processQueue ===');
 
     try {
         // 1. Récupérer l'état actuel
@@ -48,21 +47,16 @@ export async function processQueue() {
         const processingItems = candidates.filter(c => c.status === 'processing');
         const pendingItems = candidates.filter(c => c.status === 'pending');
 
-        console.log(`[Pawz:Queue] État: ${processingItems.length} en cours, ${pendingItems.length} en attente`);
-
         // 3. Calcul de capacité
         const slotsAvailable = CONFIG.MAX_CONCURRENT - processingItems.length;
 
-        // 4. Conditions d'arrêt
-        if (slotsAvailable <= 0) {
-            console.log('[Pawz:Queue] Pool plein, attente...');
+        // 4. Conditions d'arrêt silencieuses
+        if (slotsAvailable <= 0 || pendingItems.length === 0) {
             return;
         }
 
-        if (pendingItems.length === 0) {
-            console.log('[Pawz:Queue] Rien à traiter');
-            return;
-        }
+        // Log seulement quand il y a du travail
+        console.log(`[Pawz:Queue] 🚀 ${pendingItems.length} candidat(s) en attente, lancement...`);
 
         // 5. Tri intelligent (priorité FIFO)
         const sorted = pendingItems.sort((a, b) => {
@@ -75,7 +69,6 @@ export async function processQueue() {
 
         // 6. Lancer les analyses
         const toProcess = sorted.slice(0, slotsAvailable);
-        console.log(`[Pawz:Queue] Lancement de ${toProcess.length} analyse(s)...`);
 
         for (const candidate of toProcess) {
             // Passer en PROCESSING immédiatement avec timestamp
@@ -93,7 +86,6 @@ export async function processQueue() {
         console.error('[Pawz:Queue] Erreur processQueue:', error);
     } finally {
         isProcessing = false;
-        console.log('[Pawz:Queue] === Fin processQueue ===');
     }
 }
 
@@ -153,8 +145,20 @@ async function analyzeCandidate(candidate, jobs) {
         const tuningData = await chrome.storage.local.get('pawz_active_weights');
         const weights = tuningData.pawz_active_weights;
 
-        // 4. Appeler l'IA Gemini avec les poids ET le modèle stocké dans le candidat
-        const result = await GeminiClient.analyzeCandidate(payload, job, weights, candidate.model);
+        // 4. Appeler l'IA Gemini avec heartbeat pour maintenir le SW actif
+        // Le heartbeat empêche Chrome de tuer le Service Worker pendant les longues analyses
+        let heartbeatCount = 0;
+        const heartbeat = setInterval(() => {
+            heartbeatCount++;
+            console.log(`[Pawz:Queue] ⏳ Analyse en cours... (${heartbeatCount * 15}s)`);
+        }, 15000);
+        
+        let result;
+        try {
+            result = await GeminiClient.analyzeCandidate(payload, job, weights, candidate.model);
+        } finally {
+            clearInterval(heartbeat);
+        }
 
         // 5. Vérifier que le candidat existe toujours (pas supprimé pendant l'analyse)
         const stillExists = await checkCandidateExists(candidate.id);
@@ -261,7 +265,7 @@ export function setupWatchdog() {
  * @param {Object} alarm - Alarm Chrome
  */
 export async function handleAlarm(alarm) {
-    console.log(`[Pawz:Queue] Alarm: ${alarm.name}`);
+    // Watchdog silencieux sauf si action
 
     if (alarm.name === 'pawz_watchdog') {
         // Vérifier les items coincés en PROCESSING depuis trop longtemps

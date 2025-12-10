@@ -84,6 +84,19 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 // ============================================================================
+// KEEP ALIVE - Empêche Chrome de tuer le Service Worker
+// ============================================================================
+
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'keepAlive') {
+        console.log('[Pawz:Background] 🔥 KeepAlive connecté (Sidepanel ouvert)');
+        port.onDisconnect.addListener(() => {
+            console.log('[Pawz:Background] 💤 KeepAlive déconnecté');
+        });
+    }
+});
+
+// ============================================================================
 // MESSAGING - Communication avec Content Scripts et Side Panel
 // ============================================================================
 
