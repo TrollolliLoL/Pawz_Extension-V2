@@ -645,11 +645,17 @@
         if (changes.pawz_filter_url) {
             const url = changes.pawz_filter_url.newValue;
             if (url) {
-                // IMPORTANT: Fermer l'overlay de détail s'il est ouvert
+                // IMPORTANT: Fermer tous les overlays ouverts
                 const detailOverlay = document.getElementById('detail-overlay');
                 if (detailOverlay && !detailOverlay.classList.contains('hidden')) {
                     detailOverlay.classList.remove('visible');
                     detailOverlay.classList.add('hidden');
+                }
+                
+                const settingsOverlay = document.getElementById('settings-overlay');
+                if (settingsOverlay && !settingsOverlay.classList.contains('hidden')) {
+                    settingsOverlay.classList.add('hidden');
+                    _settingsOpen = false;
                 }
                 
                 // Switch to Analysis tab and set exact URL filter
