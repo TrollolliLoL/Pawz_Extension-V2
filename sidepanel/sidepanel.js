@@ -23,6 +23,7 @@
     let _filterJobId = '';
     let _filterModel = '';
     let _filterTuning = '';
+    let _showRejected = false; // Toggle pour voir les candidats rejetés
     
     // Form Data
     let _mustCriteria = [];
@@ -1411,6 +1412,13 @@
             _filterTuning = e.target.value;
             renderCandidatesList();
         });
+        
+        // Toggle Show Rejected
+        const toggleRejected = document.getElementById('toggle-show-rejected');
+        toggleRejected?.addEventListener('change', (e) => {
+            _showRejected = e.target.checked;
+            renderCandidatesList();
+        });
     }
     
     function updateJobFilterDropdown() {
@@ -1514,6 +1522,7 @@
         const container = document.getElementById('candidates-list');
         const countPending = document.getElementById('count-pending');
         const countDone = document.getElementById('count-done');
+        const countSelected = document.getElementById('count-selected');
         const filterInfo = document.getElementById('filter-info');
         const countFiltered = document.getElementById('count-filtered');
         
@@ -1526,14 +1535,21 @@
         // Stats sur TOUS les candidats (avant filtres)
         const allPending = _allCandidates.filter(c => ['pending','processing'].includes(c.status)).length;
         const allDone = _allCandidates.filter(c => c.status === 'completed').length;
+        const allSelected = _allCandidates.filter(c => c.decision === 'selected').length;
         if (countPending) countPending.textContent = allPending;
         if (countDone) countDone.textContent = allDone;
+        if (countSelected) countSelected.textContent = allSelected;
         
         // Exclure les candidats des jobs archivés par défaut (sauf si filtre job explicite)
         const archivedJobIds = _allJobs.filter(j => j.archived).map(j => j.id);
-        const baseCandidates = _filterJobId 
-            ? _allCandidates  // Si filtre job actif, on montre tous les candidats du job (même archivé)
+        let baseCandidates = _filterJobId 
+            ? _allCandidates
             : _allCandidates.filter(c => !archivedJobIds.includes(c.job_id));
+        
+        // Filtrer les candidats rejetés par défaut (sauf si toggle actif)
+        if (!_showRejected) {
+            baseCandidates = baseCandidates.filter(c => c.decision !== 'rejected');
+        }
         
         // Apply Filters
         const hasFilters = _filterText || _filterScore80 || _filterJobId || _filterModel || _filterTuning;
@@ -1558,40 +1574,99 @@
             return;
         }
 
-        // Sort by most recent
-        const sorted = [...candidates].sort((a, b) => (b.timestamp_added || 0) - (a.timestamp_added || 0));
+        // Sort: Sélectionnés d'abord, puis par date
+        const sorted = [...candidates].sort((a, b) => {
+            // Sélectionnés en premier
+            if (a.decision === 'selected' && b.decision !== 'selected') return -1;
+            if (b.decision === 'selected' && a.decision !== 'selected') return 1;
+            // Puis par date (récent d'abord)
+            return (b.timestamp_added || 0) - (a.timestamp_added || 0);
+        });
 
         sorted.forEach(c => {
-            const card = document.createElement('div');
-            card.className = `candidate-card status-${c.status}`;
-            const name = c.candidate_name || 'Candidat';
-            // Find job title
-            const job = _allJobs.find(j => j.id === c.job_id);
-            const jobTitle = job ? job.title : 'Job inconnu';
-
-            card.innerHTML = `
-                <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
-                <div class="card-center">
-                    <div class="name">${name}</div>
-                    <div class="job-subtitle">${jobTitle}</div>
-                    <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '% - ' + (c.verdict || '') : c.status}</div>
-                </div>
-                <div class="card-right"><button class="action-btn delete" data-id="${c.id}" title="Supprimer">🗑️</button></div>
-            `;
-            
-            // Click -> Open Detail
-            card.addEventListener('click', () => openCandidateDetail(c.id));
-
-            // Delete
-            card.querySelector('.delete').addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if(confirm('Supprimer ce candidat ?')) {
-                    const cands = _allCandidates.filter(x => x.id !== c.id);
-                    await chrome.storage.local.set({ pawz_candidates: cands });
-                }
-            });
+            const card = createCandidateCard(c);
             container.appendChild(card);
         });
+    }
+
+    /**
+     * Crée une carte candidat avec les boutons de décision
+     */
+    function createCandidateCard(c) {
+        const card = document.createElement('div');
+        const decision = c.decision || null;
+        const isSelected = decision === 'selected';
+        const isRejected = decision === 'rejected';
+        
+        card.className = `candidate-card status-${c.status} ${isSelected ? 'decision-selected' : ''} ${isRejected ? 'decision-rejected' : ''}`;
+        
+        const name = c.candidate_name || 'Candidat';
+        const job = _allJobs.find(j => j.id === c.job_id);
+        const jobTitle = job ? job.title : 'Job inconnu';
+
+        card.innerHTML = `
+            <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
+            <div class="card-center">
+                <div class="name">${name}${isSelected ? ' <span class="selected-badge">★</span>' : ''}</div>
+                <div class="job-subtitle">${jobTitle}</div>
+                <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '% - ' + (c.verdict || '') : c.status}</div>
+            </div>
+            <div class="card-right">
+                <div class="decision-btns">
+                    <button class="decision-btn btn-select ${isSelected ? 'active' : ''}" data-id="${c.id}" title="Sélectionner">✅</button>
+                    <button class="decision-btn btn-reject ${isRejected ? 'active' : ''}" data-id="${c.id}" title="Rejeter">❌</button>
+                </div>
+                <button class="action-btn delete" data-id="${c.id}" title="Supprimer">🗑️</button>
+            </div>
+        `;
+        
+        // Click -> Open Detail
+        card.addEventListener('click', (e) => {
+            // Ne pas ouvrir si clic sur un bouton
+            if (e.target.closest('.decision-btn') || e.target.closest('.delete')) return;
+            openCandidateDetail(c.id);
+        });
+
+        // Sélectionner
+        card.querySelector('.btn-select').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await toggleCandidateDecision(c.id, 'selected');
+        });
+
+        // Rejeter
+        card.querySelector('.btn-reject').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await toggleCandidateDecision(c.id, 'rejected');
+        });
+
+        // Delete
+        card.querySelector('.delete').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if(confirm('Supprimer ce candidat ?')) {
+                const cands = _allCandidates.filter(x => x.id !== c.id);
+                await chrome.storage.local.set({ pawz_candidates: cands });
+            }
+        });
+        
+        return card;
+    }
+
+    /**
+     * Toggle la décision d'un candidat (selected/rejected/null)
+     */
+    async function toggleCandidateDecision(candidateId, newDecision) {
+        const candidates = _allCandidates.map(c => {
+            if (c.id === candidateId) {
+                // Si déjà la même décision, repasse à neutre (null)
+                const currentDecision = c.decision || null;
+                return {
+                    ...c,
+                    decision: currentDecision === newDecision ? null : newDecision
+                };
+            }
+            return c;
+        });
+        await chrome.storage.local.set({ pawz_candidates: candidates });
     }
 
     /**

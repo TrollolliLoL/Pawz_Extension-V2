@@ -165,7 +165,12 @@
         <div class="queue-stats">
           <span class="stat-badge">⏳ <span id="count-pending">0</span></span>
           <span class="stat-badge">✅ <span id="count-done">0</span></span>
+          <span class="stat-badge stat-selected">🎯 <span id="count-selected">0</span></span>
           <span class="stat-badge filter-info hidden" id="filter-info">🔎 <span id="count-filtered">0</span> résultats</span>
+          <label class="toggle-rejected">
+            <input type="checkbox" id="toggle-show-rejected">
+            <span>Voir rejetés</span>
+          </label>
         </div>
         <div id="candidates-list" class="candidates-container">
           <div class="empty-state"><p>Aucun candidat.</p></div>

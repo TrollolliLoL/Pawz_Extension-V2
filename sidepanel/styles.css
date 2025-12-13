@@ -2375,3 +2375,109 @@ body {
 .btn-archive-job:hover {
   opacity: 1;
 }
+
+/* --- CANDIDATE DECISION SYSTEM --- */
+
+/* Decision Buttons Container */
+.decision-btns {
+  display: flex;
+  gap: 2px;
+  margin-right: 6px;
+}
+
+.decision-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.5;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decision-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.decision-btn.btn-select.active {
+  background: #d1fae5;
+  border-color: var(--color-green);
+  opacity: 1;
+}
+
+.decision-btn.btn-reject.active {
+  background: #fee2e2;
+  border-color: #ef4444;
+  opacity: 1;
+}
+
+/* Candidate Card - Selected State */
+.candidate-card.decision-selected {
+  border-left: 4px solid var(--color-green) !important;
+  background: linear-gradient(to right, #f0fdf4, white);
+}
+
+.candidate-card.decision-selected .avatar {
+  background: var(--color-green);
+  color: white;
+}
+
+.selected-badge {
+  color: #f59e0b;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* Candidate Card - Rejected State */
+.candidate-card.decision-rejected {
+  opacity: 0.5;
+  background: #f9fafb;
+  border-left-color: #d1d5db !important;
+}
+
+.candidate-card.decision-rejected:hover {
+  opacity: 0.7;
+}
+
+.candidate-card.decision-rejected .name {
+  color: #9ca3af;
+}
+
+/* Toggle Show Rejected */
+.toggle-rejected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.2s;
+  margin-left: auto;
+}
+
+.toggle-rejected:hover {
+  background: #f3f4f6;
+}
+
+.toggle-rejected input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* Stat Badge Selected */
+.stat-badge.stat-selected {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
