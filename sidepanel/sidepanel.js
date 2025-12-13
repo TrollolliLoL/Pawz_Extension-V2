@@ -1550,7 +1550,16 @@
         document.getElementById('detail-candidate-title').textContent = currentJob;
         document.getElementById('detail-initials').textContent = initials;
         
-        document.getElementById('detail-score').textContent = score + '%';
+        const scoreEl = document.getElementById('detail-score');
+        scoreEl.textContent = score + '%';
+        
+        // Score color based on value (Style V1)
+        scoreEl.className = 'score-big'; // Reset
+        if (score >= 80) scoreEl.classList.add('score-top');       // Bleu - Top
+        else if (score >= 60) scoreEl.classList.add('score-good'); // Vert - Bon
+        else if (score >= 40) scoreEl.classList.add('score-maybe'); // Orange - Peut-être
+        else scoreEl.classList.add('score-low');                    // Rouge - Faible
+        
         const verdictEl = document.getElementById('detail-verdict');
         verdictEl.textContent = verdict;
         

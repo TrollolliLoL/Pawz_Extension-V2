@@ -298,25 +298,80 @@ body {
   color: var(--color-primary);
   margin: 0;
 }
-.verdict-badge {
-  background: #ecfdf5;
-  color: var(--color-green);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
+/* === STYLE V1 : Header Profil Candidat === */
+.header-profile-v1 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  background: #f9fafb;
+  padding: 15px;
+  border-radius: 12px;
 }
-
-.candidate-name-detail {
-  font-size: 18px;
-  margin: 0 0 4px 0;
+.header-profile-v1 .hp-info h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
   color: #111;
 }
-.candidate-title-detail {
-  font-size: 13px;
+.header-profile-v1 .hp-info p {
+  margin: 4px 0 0 0;
+  font-size: 12px;
   color: #6b7280;
-  margin: 0 0 20px 0;
+}
+.initials-badge {
+  width: 40px;
+  height: 40px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* === STYLE V1 : Score Section === */
+.score-section-v1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.score-big {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 5px;
+}
+/* Couleurs dynamiques du score */
+.score-big.score-top { color: #1e40af; }      /* Bleu - Top */
+.score-big.score-good { color: #10b981; }     /* Vert - Bon */
+.score-big.score-maybe { color: #f59e0b; }    /* Orange/Jaune - Peut-être */
+.score-big.score-low { color: #ef4444; }      /* Rouge - Faible */
+
+.verdict-badge {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.verdict-badge.verdict-match {
+  background: #ecfdf5;
+  color: #059669;
+}
+.verdict-badge.verdict-maybe {
+  background: #fffbeb;
+  color: #d97706;
+}
+.verdict-badge.verdict-nomatch {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 /* Accordions (Cleaned) */

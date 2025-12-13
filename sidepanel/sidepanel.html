@@ -177,16 +177,18 @@
       </div>
       <div class="analysis-content">
         <div class="analysis-scroll-area">
-            <!-- 1. EN-TÊTE PROFIL -->
-            <div class="header-profile" style="text-align:center; margin-bottom:20px;">
-                <div id="detail-initials" class="avatar-large" style="width:60px; height:60px; border-radius:50%; background:#f3f4f6; color:#374151; font-size:24px; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;">--</div>
-                <h3 id="detail-candidate-name" style="margin:0; font-size:18px; font-weight:700; color:#111;">Nom Candidat</h3>
-                <p id="detail-candidate-title" style="margin:4px 0 0 0; font-size:13px; color:#6b7280;">Titre détecté</p>
+            <!-- 1. EN-TÊTE PROFIL (Style V1 - Horizontal) -->
+            <div class="header-profile-v1">
+                <div class="hp-info">
+                    <h3 id="detail-candidate-name">Nom Candidat</h3>
+                    <p id="detail-candidate-title">Titre détecté</p>
+                </div>
+                <div id="detail-initials" class="initials-badge">--</div>
             </div>
-            <!-- 2. SCORE & VERDICT -->
-            <div style="text-align: center; margin-bottom: 24px;">
-                <div id="detail-score" class="score-display" style="font-size:48px; font-weight:800; color:#111; line-height:1;">--%</div>
-                <div id="detail-verdict" class="verdict-badge" style="display:inline-block; margin-top:8px; padding:4px 12px; border-radius:20px; background:#f3f4f6; color:#6b7280; font-size:13px; font-weight:600;">En attente</div>
+            <!-- 2. SCORE & VERDICT (Style V1) -->
+            <div class="score-section-v1">
+                <div id="detail-score" class="score-big">--%</div>
+                <div id="detail-verdict" class="verdict-badge">En attente</div>
             </div>
             <!-- 3. ACCORDÉON : POINTS FORTS (ouvert par défaut) -->
             <div class="accordion open">
