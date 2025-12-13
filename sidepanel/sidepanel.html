@@ -142,19 +142,23 @@
                 <input type="text" id="search-candidates" class="search-input" placeholder="Rechercher un candidat...">
                 <button id="btn-clear-search" class="btn-clear-search hidden">×</button>
             </div>
-            <div class="filter-pills">
-                <button class="filter-pill" data-filter="score80" title="Score ≥ 80%">⭐ Top</button>
-                <select id="filter-job" class="filter-select">
-                    <option value="">Toutes les fiches</option>
-                </select>
-                <select id="filter-model" class="filter-select">
-                    <option value="">Tous les modèles</option>
-                    <option value="fast">⚡ Flash</option>
-                    <option value="pro">🧠 Pro</option>
-                </select>
-                <select id="filter-tuning" class="filter-select">
-                    <option value="">Tous les réglages</option>
-                </select>
+            <div class="filter-rows">
+                <div class="filter-row">
+                    <button class="filter-pill" data-filter="score80" title="Score ≥ 80%">⭐ Top</button>
+                    <select id="filter-job" class="filter-select">
+                        <option value="">Toutes les fiches</option>
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <select id="filter-model" class="filter-select">
+                        <option value="">Tous les modèles</option>
+                        <option value="fast">⚡ Flash</option>
+                        <option value="pro">🧠 Pro</option>
+                    </select>
+                    <select id="filter-tuning" class="filter-select">
+                        <option value="">Tous les réglages</option>
+                    </select>
+                </div>
             </div>
         </div>
         
