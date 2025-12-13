@@ -127,7 +127,29 @@
     let _pdfShadow = null;
     let _pdfBtn = null;
     let _pdfSidebar = null;
+    let _pdfDragOverlay = null;
     let _currentPdfContext = null;
+    let _pdfCurrentY = 50; // % from top (comme le web)
+    const PDF_STORAGE_KEY_POS = 'pawz_pdf_trigger_position';
+    
+    async function loadPdfPosition() {
+        try {
+            const data = await chrome.storage.local.get(PDF_STORAGE_KEY_POS);
+            if (data[PDF_STORAGE_KEY_POS]) {
+                _pdfCurrentY = data[PDF_STORAGE_KEY_POS];
+            }
+        } catch (e) {
+            // Silent
+        }
+    }
+    
+    async function savePdfPosition() {
+        try {
+            await chrome.storage.local.set({ [PDF_STORAGE_KEY_POS]: _pdfCurrentY });
+        } catch (e) {
+            // Silent
+        }
+    }
     
     function initPdfMode(pdfContext) {
         console.log('[Pawz:Content] Mode PDF activé');
@@ -138,103 +160,177 @@
         // Éviter les doublons
         if (document.getElementById('pawz-pdf-trigger')) return;
         
-        // Créer le host
+        // Charger la position puis créer l'UI
+        loadPdfPosition().then(() => {
+            createPdfTrigger(pdfContext);
+        });
+    }
+    
+    function createPdfTrigger(pdfContext) {
+        // Injecter le CSS de l'overlay dans la page (hors Shadow DOM)
+        if (!document.getElementById('pawz-pdf-overlay-style')) {
+            const overlayStyle = document.createElement('style');
+            overlayStyle.id = 'pawz-pdf-overlay-style';
+            overlayStyle.textContent = `
+                .pawz-pdf-drag-overlay {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    background: transparent !important;
+                    z-index: 2147483646 !important;
+                    cursor: grabbing !important;
+                    user-select: none !important;
+                }
+            `;
+            document.head.appendChild(overlayStyle);
+        }
+        
+        // Créer le host (même style que le web)
         const host = document.createElement('div');
         host.id = 'pawz-pdf-trigger';
         host.style.cssText = `
             position: fixed !important;
-            bottom: 20px !important;
-            right: 20px !important;
+            top: ${_pdfCurrentY}% !important;
+            right: 15px !important;
+            transform: translateY(-50%) !important;
             z-index: 2147483647 !important;
+            pointer-events: auto !important;
         `;
         document.body.appendChild(host);
         
         _pdfShadow = host.attachShadow({ mode: 'open' });
         
-        // Styles
+        // Styles (harmonisés avec trigger.css)
         const style = document.createElement('style');
         style.textContent = `
+            /* === PASTILLE PDF (même style que Web) === */
             .pawz-pdf-btn {
-                width: 60px;
-                height: 60px;
-                background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+                width: 52px;
+                height: 52px;
                 border-radius: 50%;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(30,64,175,0.4);
+                background: linear-gradient(145deg, #0077cc 0%, #005fa3 100%);
+                border: 2px solid #004d85;
+                box-shadow:
+                    0 4px 12px rgba(0, 80, 160, 0.4),
+                    inset 0 2px 3px rgba(255, 255, 255, 0.2);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 3px solid white;
-                transition: transform 0.2s, box-shadow 0.2s;
-                font-size: 24px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                z-index: 2147483647;
+                user-select: none;
+                -webkit-user-drag: none;
             }
             .pawz-pdf-btn:hover {
-                transform: scale(1.1);
-                box-shadow: 0 6px 20px rgba(30,64,175,0.6);
+                transform: scale(1.08);
+                box-shadow: 0 6px 18px rgba(0, 80, 160, 0.5);
+            }
+            .pawz-pdf-btn.dragging {
+                cursor: grabbing;
+                transform: scale(1.05);
+                box-shadow: 0 8px 24px rgba(0, 80, 160, 0.6);
             }
             .pawz-pdf-btn.loading {
                 opacity: 0.7;
                 pointer-events: none;
             }
             .pawz-pdf-btn.success {
-                background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+                background: linear-gradient(145deg, #10B981 0%, #059669 100%) !important;
+                border-color: #047857 !important;
             }
             .pawz-pdf-btn.error {
-                background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+                background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%) !important;
+                border-color: #b91c1c !important;
             }
             
-            /* Mini Sidebar */
+            .pdf-trigger-logo {
+                width: 90%;
+                height: 90%;
+                object-fit: contain;
+                pointer-events: none;
+                user-select: none;
+                -webkit-user-drag: none;
+            }
+            
+            /* === OVERLAY DRAG === */
+            .pawz-pdf-drag-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: transparent;
+                z-index: 2147483646;
+                cursor: grabbing;
+                user-select: none;
+            }
+            
+            /* === MINI SIDEBAR (même style que Web) === */
             .pawz-pdf-sidebar {
                 position: absolute;
-                bottom: 70px;
-                right: 0;
+                right: 60px;
+                top: 50%;
+                transform: translateY(-50%);
                 background: white;
-                border-radius: 12px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                border-radius: 10px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
                 padding: 8px;
                 min-width: 180px;
+                z-index: 2147483646;
                 opacity: 0;
-                transform: translateY(10px);
                 pointer-events: none;
                 transition: opacity 0.2s, transform 0.2s;
             }
             .pawz-pdf-sidebar.open {
                 opacity: 1;
-                transform: translateY(0);
                 pointer-events: auto;
             }
+            .pawz-pdf-sidebar.hidden {
+                display: none;
+            }
+            
+            /* Boutons sidebar */
             .sidebar-btn {
                 display: block;
                 width: 100%;
-                padding: 10px 12px;
-                margin: 4px 0;
+                padding: 10px 14px;
+                margin-bottom: 4px;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 font-size: 13px;
+                font-weight: 600;
                 cursor: pointer;
                 text-align: left;
-                transition: background 0.15s;
+                transition: all 0.2s;
+            }
+            .sidebar-btn:last-child {
+                margin-bottom: 0;
             }
             .btn-analyze {
-                background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+                background: linear-gradient(145deg, #0077cc 0%, #005fa3 100%);
                 color: white;
             }
             .btn-analyze:hover {
-                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+                background: linear-gradient(145deg, #0088dd 0%, #006bb4 100%);
             }
             .btn-view {
-                background: #F3F4F6;
+                background: #f3f4f6;
                 color: #374151;
             }
             .btn-view:hover {
-                background: #E5E7EB;
+                background: #e5e7eb;
             }
             .btn-history {
-                background: #FEF3C7;
-                color: #92400E;
+                background: #eff6ff;
+                color: #1e40af;
+                border: 1px solid #dbeafe;
             }
             .btn-history:hover {
-                background: #FDE68A;
+                background: #dbeafe;
+                border-color: #bfdbfe;
             }
             .sidebar-info {
                 padding: 8px 12px;
@@ -245,27 +341,119 @@
         `;
         _pdfShadow.appendChild(style);
         
-        // Bouton principal
+        // Bouton principal avec LOGO (pas emoji)
         _pdfBtn = document.createElement('div');
         _pdfBtn.className = 'pawz-pdf-btn';
-        _pdfBtn.innerHTML = '📄';
-        _pdfBtn.title = 'Analyser ce PDF';
+        _pdfBtn.title = 'Pawz - Analyser ce PDF';
+        
+        const img = document.createElement('img');
+        img.src = chrome.runtime.getURL('assets/Logo Pawz Blanc VFinal.PNG');
+        img.className = 'pdf-trigger-logo';
+        img.draggable = false;
+        img.onerror = () => { _pdfBtn.textContent = '🐾'; };
+        _pdfBtn.appendChild(img);
+        
         _pdfShadow.appendChild(_pdfBtn);
         
         // Mini sidebar
         _pdfSidebar = document.createElement('div');
-        _pdfSidebar.className = 'pawz-pdf-sidebar';
+        _pdfSidebar.className = 'pawz-pdf-sidebar hidden';
+        _pdfSidebar.innerHTML = '<div class="sidebar-buttons"></div>';
         _pdfShadow.appendChild(_pdfSidebar);
         
-        // Click sur le bouton = toggle sidebar
-        _pdfBtn.addEventListener('click', () => togglePdfSidebar(pdfContext));
+        // Setup events (drag & drop + click)
+        setupPdfEvents(host, pdfContext);
         
         // Fermer si clic en dehors
         document.addEventListener('click', (e) => {
             if (!host.contains(e.target)) {
-                _pdfSidebar.classList.remove('open');
+                closePdfSidebar();
             }
         });
+    }
+    
+    function closePdfSidebar() {
+        _pdfSidebar.classList.remove('open');
+        setTimeout(() => _pdfSidebar.classList.add('hidden'), 200);
+    }
+    
+    function openPdfSidebar(pdfContext) {
+        updatePdfSidebarButtons(pdfContext);
+        _pdfSidebar.classList.remove('hidden');
+        requestAnimationFrame(() => _pdfSidebar.classList.add('open'));
+    }
+    
+    // === SETUP PDF EVENTS (Drag & Drop comme le Web) ===
+    let _pdfDragStartPos = null;
+    let _pdfHasMoved = false;
+    
+    function setupPdfEvents(host, pdfContext) {
+        _pdfBtn.addEventListener('mousedown', (e) => handlePdfMouseDown(e, host, pdfContext));
+    }
+    
+    function handlePdfMouseDown(e, host, pdfContext) {
+        if (e.button !== 0) return; // Left click only
+        
+        e.preventDefault();
+        e.stopPropagation();
+        _pdfDragStartPos = { x: e.clientX, y: e.clientY };
+        _pdfHasMoved = false;
+        
+        // Créer l'overlay IMMÉDIATEMENT pour le curseur grabbing
+        _pdfDragOverlay = document.createElement('div');
+        _pdfDragOverlay.className = 'pawz-pdf-drag-overlay';
+        document.body.appendChild(_pdfDragOverlay);
+        
+        const onMouseMove = (moveEvent) => {
+            const deltaX = Math.abs(moveEvent.clientX - _pdfDragStartPos.x);
+            const deltaY = Math.abs(moveEvent.clientY - _pdfDragStartPos.y);
+            
+            // Threshold to distinguish click from drag
+            if (deltaX > 5 || deltaY > 5) {
+                _pdfHasMoved = true;
+                _pdfBtn.classList.add('dragging');
+                closePdfSidebar();
+                
+                const newY = moveEvent.clientY;
+                _pdfCurrentY = Math.max(5, Math.min(95, (newY / window.innerHeight) * 100));
+                host.style.top = `${_pdfCurrentY}%`;
+            }
+        };
+        
+        const cleanup = () => {
+            // Retirer TOUS les listeners
+            window.removeEventListener('mousemove', onMouseMove, true);
+            window.removeEventListener('mouseup', onMouseUp, true);
+            
+            if (_pdfDragOverlay) {
+                _pdfDragOverlay.remove();
+                _pdfDragOverlay = null;
+            }
+            _pdfBtn.classList.remove('dragging');
+            _pdfDragStartPos = null;
+        };
+        
+        const onMouseUp = () => {
+            const wasDrag = _pdfHasMoved;
+            cleanup();
+            
+            if (wasDrag) {
+                // It was a drag
+                savePdfPosition();
+            } else {
+                // It was a click - toggle sidebar
+                if (_pdfSidebar.classList.contains('hidden')) {
+                    openPdfSidebar(pdfContext);
+                } else {
+                    closePdfSidebar();
+                }
+            }
+        };
+        
+        // Utiliser window avec capture:true pour intercepter TOUS les événements
+        // même ceux du viewer PDF de Chrome
+        window.addEventListener('mousemove', onMouseMove, true);
+        window.addEventListener('mouseup', onMouseUp, true);
     }
     
     /**
@@ -449,13 +637,26 @@
      * - Local (file://) : Délègue au Background (qui a les privilèges)
      * - CDN/Remote : Fetch + Base64 dans le Content Script
      */
+    // Helper pour restaurer le logo PDF
+    function restorePdfLogo(btn) {
+        btn.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = chrome.runtime.getURL('assets/Logo Pawz Blanc VFinal.PNG');
+        img.className = 'pdf-trigger-logo';
+        img.draggable = false;
+        img.onerror = () => { btn.textContent = '🐾'; };
+        btn.appendChild(img);
+    }
+    
     async function launchPdfAnalysis(pdfContext, btn) {
         
         // Fermer la sidebar
-        if (_pdfSidebar) _pdfSidebar.classList.remove('open');
+        if (_pdfSidebar) closePdfSidebar();
         
+        // Sauvegarder le logo et afficher loading
+        const logoImg = btn.querySelector('.pdf-trigger-logo');
+        if (logoImg) logoImg.style.opacity = '0.5';
         btn.classList.add('loading');
-        btn.innerHTML = '⏳';
         
         try {
             let payload = {
@@ -506,10 +707,9 @@
             if (response && response.success) {
                 btn.classList.remove('loading');
                 btn.classList.add('success');
-                btn.innerHTML = '✅';
+                if (logoImg) logoImg.style.opacity = '1';
                 setTimeout(() => {
                     btn.classList.remove('success');
-                    btn.innerHTML = '📄';
                 }, 2000);
             } else {
                 // Afficher l'erreur du background
@@ -528,10 +728,9 @@
             console.error('[Pawz:Content] Erreur analyse PDF:', error.message);
             btn.classList.remove('loading');
             btn.classList.add('error');
-            btn.innerHTML = '❌';
+            if (logoImg) logoImg.style.opacity = '1';
             setTimeout(() => {
                 btn.classList.remove('error');
-                btn.innerHTML = '📄';
             }, 3000);
         }
     }

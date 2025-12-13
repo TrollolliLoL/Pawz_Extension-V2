@@ -35,8 +35,8 @@
 }
 
 .trigger-logo {
-    width: 95%;
-    height: 95%;
+    width: 90%;
+    height: 90%;
     object-fit: contain;
     pointer-events: none;
     user-select: none;
