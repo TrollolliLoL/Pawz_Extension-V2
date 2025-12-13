@@ -680,6 +680,13 @@
         if (changes.pawz_open_candidate) {
             const candidateId = changes.pawz_open_candidate.newValue;
             if (candidateId) {
+                // IMPORTANT: Fermer l'overlay settings s'il est ouvert
+                const settingsOverlay = document.getElementById('settings-overlay');
+                if (settingsOverlay && !settingsOverlay.classList.contains('hidden')) {
+                    settingsOverlay.classList.add('hidden');
+                    _settingsOpen = false;
+                }
+                
                 // Switch to Analysis tab and open detail
                 document.getElementById('tab-analysis')?.click();
                 setTimeout(() => {
