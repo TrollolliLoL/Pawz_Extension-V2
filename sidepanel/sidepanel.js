@@ -1552,22 +1552,22 @@
         
         const scoreEl = document.getElementById('detail-score');
         scoreEl.textContent = score + '%';
-        
-        // Score color based on value (Style V1)
-        scoreEl.className = 'score-big'; // Reset
-        if (score >= 80) scoreEl.classList.add('score-top');       // Bleu - Top
-        else if (score >= 60) scoreEl.classList.add('score-good'); // Vert - Bon
-        else if (score >= 40) scoreEl.classList.add('score-maybe'); // Orange - Peut-être
-        else scoreEl.classList.add('score-low');                    // Rouge - Faible
-        
         const verdictEl = document.getElementById('detail-verdict');
         verdictEl.textContent = verdict;
         
-        // Verdict styling based on score/status
-        verdictEl.className = 'verdict-badge'; // Reset
-        if (score >= 70) verdictEl.classList.add('verdict-match');
-        else if (score >= 40) verdictEl.classList.add('verdict-maybe');
-        else verdictEl.classList.add('verdict-nomatch');
+        // Couleurs synchronisées score + verdict
+        // <30% Rouge | 30-69% Orange | 70-94% Vert | 95-100% Bleu
+        scoreEl.className = 'score-big';
+        verdictEl.className = 'verdict-badge';
+        
+        let colorClass;
+        if (score >= 95) colorClass = 'color-top';       // Bleu (95-100)
+        else if (score >= 70) colorClass = 'color-good'; // Vert (70-94)
+        else if (score >= 30) colorClass = 'color-maybe'; // Orange (30-69)
+        else colorClass = 'color-low';                    // Rouge (<30)
+        
+        scoreEl.classList.add(colorClass);
+        verdictEl.classList.add(colorClass);
 
         // 3. Populate Lists
         const strengthsList = document.getElementById('detail-strengths');

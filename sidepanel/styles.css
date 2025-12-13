@@ -344,11 +344,12 @@ body {
   color: var(--color-primary);
   margin-bottom: 5px;
 }
-/* Couleurs dynamiques du score */
-.score-big.score-top { color: #1e40af; }      /* Bleu - Top */
-.score-big.score-good { color: #10b981; }     /* Vert - Bon */
-.score-big.score-maybe { color: #f59e0b; }    /* Orange/Jaune - Peut-être */
-.score-big.score-low { color: #ef4444; }      /* Rouge - Faible */
+/* Couleurs dynamiques partagées (score + verdict) */
+/* 95-100% Bleu | 70-94% Vert | 30-69% Orange | <30% Rouge */
+.color-top { color: #1e40af; }      /* Bleu - Top */
+.color-good { color: #10b981; }     /* Vert - Bon */
+.color-maybe { color: #f59e0b; }    /* Orange - Peut-être */
+.color-low { color: #ef4444; }      /* Rouge - Faible */
 
 .verdict-badge {
   font-size: 12px;
@@ -359,20 +360,11 @@ body {
   padding: 4px 8px;
   border-radius: 4px;
   background: #f3f4f6;
-  color: #6b7280;
 }
-.verdict-badge.verdict-match {
-  background: #ecfdf5;
-  color: #059669;
-}
-.verdict-badge.verdict-maybe {
-  background: #fffbeb;
-  color: #d97706;
-}
-.verdict-badge.verdict-nomatch {
-  background: #fef2f2;
-  color: #dc2626;
-}
+.verdict-badge.color-top { background: #eff6ff; }
+.verdict-badge.color-good { background: #ecfdf5; }
+.verdict-badge.color-maybe { background: #fffbeb; }
+.verdict-badge.color-low { background: #fef2f2; }
 
 /* Accordions (Cleaned) */
 .accordion {
