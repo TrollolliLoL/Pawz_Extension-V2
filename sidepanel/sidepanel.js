@@ -1092,10 +1092,14 @@
      * Toggle l'état d'archivage d'un job
      */
     async function toggleArchiveJob(jobId) {
-        const jobs = _allJobs.map(j => {
+        const job = _allJobs.find(j => j.id === jobId);
+        if (!job) return;
+        
+        const willBeArchived = !job.archived;
+        const wasActive = job.active;
+        
+        let jobs = _allJobs.map(j => {
             if (j.id === jobId) {
-                // Si on archive un job actif, il ne doit plus être actif
-                const willBeArchived = !j.archived;
                 return {
                     ...j,
                     archived: willBeArchived,
@@ -1104,6 +1108,22 @@
             }
             return j;
         });
+        
+        // Si on archive un job actif, activer le job non-archivé le plus récent
+        if (willBeArchived && wasActive) {
+            const nonArchivedJobs = jobs
+                .filter(j => !j.archived && j.id !== jobId)
+                .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+            
+            if (nonArchivedJobs.length > 0) {
+                const mostRecentId = nonArchivedJobs[0].id;
+                jobs = jobs.map(j => ({
+                    ...j,
+                    active: j.id === mostRecentId
+                }));
+            }
+        }
+        
         await chrome.storage.local.set({ pawz_jobs: jobs });
     }
 
@@ -1574,14 +1594,8 @@
             return;
         }
 
-        // Sort: Sélectionnés d'abord, puis par date
-        const sorted = [...candidates].sort((a, b) => {
-            // Sélectionnés en premier
-            if (a.decision === 'selected' && b.decision !== 'selected') return -1;
-            if (b.decision === 'selected' && a.decision !== 'selected') return 1;
-            // Puis par date (récent d'abord)
-            return (b.timestamp_added || 0) - (a.timestamp_added || 0);
-        });
+        // Sort by most recent (ne pas remonter les sélectionnés)
+        const sorted = [...candidates].sort((a, b) => (b.timestamp_added || 0) - (a.timestamp_added || 0));
 
         sorted.forEach(c => {
             const card = createCandidateCard(c);
