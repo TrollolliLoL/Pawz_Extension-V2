@@ -1886,10 +1886,15 @@
         // Data from Analysis Object
         const strengths = analysis.strengths || [];
         const warnings = analysis.warnings || []; // "warnings" in backend, confirmed
+        const excerpts = analysis.relevant_excerpts || [];
         const summary = analysis.summary || "Aucun résumé disponible.";
 
         fillList(strengthsList, strengths);
         fillList(warningsList, warnings);
+        
+        // Extraits pertinents (citations du CV)
+        const excerptsList = document.getElementById('detail-excerpts');
+        fillList(excerptsList, excerpts);
         
         summaryText.textContent = summary;
         
