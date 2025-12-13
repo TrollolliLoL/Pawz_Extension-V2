@@ -1558,7 +1558,8 @@
         // Clear and rebuild
         select.innerHTML = '<option value="">Toutes les fiches</option>';
         
-        _allJobs.forEach(job => {
+        // Afficher les fiches de la plus récente à la plus ancienne
+        [..._allJobs].reverse().forEach(job => {
             const option = document.createElement('option');
             option.value = job.id;
             option.textContent = job.title || 'Sans titre';
