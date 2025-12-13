@@ -1634,13 +1634,17 @@
         const name = c.candidate_name || 'Candidat';
         const job = _allJobs.find(j => j.id === c.job_id);
         const jobTitle = job ? job.title : 'Job inconnu';
+        
+        // Tronquer le verdict au premier tiret
+        const fullVerdict = c.verdict || '';
+        const shortVerdict = fullVerdict.split(' - ')[0].trim();
 
         card.innerHTML = `
             <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
             <div class="card-center">
                 <div class="name">${name}${isSelected ? ' <span class="selected-badge">★</span>' : ''}</div>
                 <div class="job-subtitle">${jobTitle}</div>
-                <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '% - ' + (c.verdict || '') : c.status}</div>
+                <div class="status-text">${c.status === 'completed' ? (c.score || 0) + '% - ' + shortVerdict : c.status}</div>
             </div>
             <div class="card-right">
                 <div class="decision-btns">
