@@ -1749,18 +1749,18 @@
         btnReject.parentNode.replaceChild(newBtnReject, btnReject);
         
         newBtnSelect.addEventListener('click', async () => {
+            const wasActive = newBtnSelect.classList.contains('active');
             await toggleCandidateDecision(candidate.id, 'selected');
-            // Mettre à jour l'état visuel
-            const updated = _allCandidates.find(c => c.id === candidate.id);
-            newBtnSelect.classList.toggle('active', updated?.decision === 'selected');
+            // Mettre à jour l'état visuel immédiatement
+            newBtnSelect.classList.toggle('active', !wasActive);
             newBtnReject.classList.remove('active');
         });
         
         newBtnReject.addEventListener('click', async () => {
+            const wasActive = newBtnReject.classList.contains('active');
             await toggleCandidateDecision(candidate.id, 'rejected');
-            // Mettre à jour l'état visuel
-            const updated = _allCandidates.find(c => c.id === candidate.id);
-            newBtnReject.classList.toggle('active', updated?.decision === 'rejected');
+            // Mettre à jour l'état visuel immédiatement
+            newBtnReject.classList.toggle('active', !wasActive);
             newBtnSelect.classList.remove('active');
         });
         
