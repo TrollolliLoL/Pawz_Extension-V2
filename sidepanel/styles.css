@@ -53,6 +53,12 @@ body {
   height: 24px;
 }
 
+.logo-text {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+}
+
 .job-dropdown {
   border: 1px solid #e5e7eb;
   border-radius: 6px;
