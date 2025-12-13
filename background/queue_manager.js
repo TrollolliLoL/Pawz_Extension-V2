@@ -14,7 +14,7 @@ import { timestamp } from '../lib/utils.js';
  * Configuration du Worker Pool.
  */
 const CONFIG = {
-    MAX_CONCURRENT: 3,      // Nombre max d'analyses simultanées
+    MAX_CONCURRENT: 5,      // Nombre max d'analyses simultanées
     MAX_RETRY: 3,           // Nombre max de tentatives avant FAILED
     WATCHDOG_INTERVAL: 1    // Intervalle du watchdog en minutes
 };
