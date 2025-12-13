@@ -2494,3 +2494,21 @@ body {
   background: #d1fae5;
   border-color: var(--color-green);
 }
+
+/* Detail Overlay - Decision Buttons */
+.hp-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-decision-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.detail-decision-btns .decision-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}

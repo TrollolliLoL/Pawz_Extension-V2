@@ -1734,6 +1734,36 @@
         document.getElementById('detail-candidate-title').textContent = currentJob;
         document.getElementById('detail-initials').textContent = initials;
         
+        // 2b. Decision Buttons State
+        const decision = candidate.decision || null;
+        const btnSelect = document.getElementById('detail-btn-select');
+        const btnReject = document.getElementById('detail-btn-reject');
+        
+        btnSelect.classList.toggle('active', decision === 'selected');
+        btnReject.classList.toggle('active', decision === 'rejected');
+        
+        // Decision Buttons Listeners (remove old, add new)
+        const newBtnSelect = btnSelect.cloneNode(true);
+        const newBtnReject = btnReject.cloneNode(true);
+        btnSelect.parentNode.replaceChild(newBtnSelect, btnSelect);
+        btnReject.parentNode.replaceChild(newBtnReject, btnReject);
+        
+        newBtnSelect.addEventListener('click', async () => {
+            await toggleCandidateDecision(candidate.id, 'selected');
+            // Mettre à jour l'état visuel
+            const updated = _allCandidates.find(c => c.id === candidate.id);
+            newBtnSelect.classList.toggle('active', updated?.decision === 'selected');
+            newBtnReject.classList.remove('active');
+        });
+        
+        newBtnReject.addEventListener('click', async () => {
+            await toggleCandidateDecision(candidate.id, 'rejected');
+            // Mettre à jour l'état visuel
+            const updated = _allCandidates.find(c => c.id === candidate.id);
+            newBtnReject.classList.toggle('active', updated?.decision === 'rejected');
+            newBtnSelect.classList.remove('active');
+        });
+        
         const scoreEl = document.getElementById('detail-score');
         scoreEl.textContent = score + '%';
         const verdictEl = document.getElementById('detail-verdict');
