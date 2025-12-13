@@ -738,11 +738,17 @@
         document.getElementById('btn-clear-form')?.addEventListener('click', clearForm);
 
         // Navigation souris (bouton précédent) et clavier (Backspace)
+        // Note: La navigation globale est gérée par setupNavigationShortcuts/handleBackNavigation
+        // Ici on gère uniquement les cas spécifiques à la vue édition SANS overlay ouvert
         document.addEventListener('mouseup', (e) => {
-            // Bouton 3 = bouton "précédent" de la souris
             if (e.button === 3 && _searchViewMode === 'EDIT') {
-                e.preventDefault();
-                tryNavigateBack();
+                // Vérifier qu'aucun overlay n'est ouvert
+                const sourcingOpen = !document.getElementById('sourcing-overlay')?.classList.contains('hidden');
+                const detailOpen = !document.getElementById('detail-overlay')?.classList.contains('hidden');
+                if (!sourcingOpen && !detailOpen) {
+                    e.preventDefault();
+                    tryNavigateBack();
+                }
             }
         });
 
@@ -759,8 +765,13 @@
             if (e.key === 'Backspace' && _searchViewMode === 'EDIT') {
                 const tag = document.activeElement?.tagName;
                 if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
-                    e.preventDefault();
-                    tryNavigateBack();
+                    // Vérifier qu'aucun overlay n'est ouvert
+                    const sourcingOpen = !document.getElementById('sourcing-overlay')?.classList.contains('hidden');
+                    const detailOpen = !document.getElementById('detail-overlay')?.classList.contains('hidden');
+                    if (!sourcingOpen && !detailOpen) {
+                        e.preventDefault();
+                        tryNavigateBack();
+                    }
                 }
             }
         });
