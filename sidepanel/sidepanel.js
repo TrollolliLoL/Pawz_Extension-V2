@@ -965,30 +965,74 @@
             return;
         }
 
+        // Séparer jobs actifs et archivés
+        const activeJobs = _allJobs.filter(j => !j.archived);
+        const archivedJobs = _allJobs.filter(j => j.archived);
+
         // Tri: Actif d'abord, puis les autres du plus récent au plus ancien
-        const sortedJobs = [..._allJobs].sort((a, b) => {
-            if (a.active && !b.active) return -1;  // Active en premier
+        const sortedActiveJobs = [...activeJobs].sort((a, b) => {
+            if (a.active && !b.active) return -1;
             if (b.active && !a.active) return 1;
-            // Pour les non-actifs, trier par date (récent d'abord)
             const dateA = a.created_at || 0;
             const dateB = b.created_at || 0;
-            return dateB - dateA;  // Plus grand (récent) en premier
+            return dateB - dateA;
         });
 
-        sortedJobs.forEach(job => {
+        // Afficher les jobs actifs
+        sortedActiveJobs.forEach(job => {
             const card = createJobCard(job);
             container.appendChild(card);
         });
+
+        // Afficher la section Archives si des jobs archivés existent
+        if (archivedJobs.length > 0) {
+            const archiveSection = document.createElement('div');
+            archiveSection.className = 'archives-accordion';
+            archiveSection.innerHTML = `
+                <div class="archives-header">
+                    <span>🗄️ Archives (${archivedJobs.length})</span>
+                    <span class="archives-chevron">▼</span>
+                </div>
+                <div class="archives-content hidden"></div>
+            `;
+
+            // Listener pour toggle l'accordéon
+            archiveSection.querySelector('.archives-header').addEventListener('click', () => {
+                const content = archiveSection.querySelector('.archives-content');
+                const chevron = archiveSection.querySelector('.archives-chevron');
+                content.classList.toggle('hidden');
+                chevron.classList.toggle('open');
+            });
+
+            // Trier les archivés par date (récent d'abord)
+            const sortedArchivedJobs = [...archivedJobs].sort((a, b) => {
+                return (b.created_at || 0) - (a.created_at || 0);
+            });
+
+            const archiveContent = archiveSection.querySelector('.archives-content');
+            sortedArchivedJobs.forEach(job => {
+                const card = createJobCard(job);
+                archiveContent.appendChild(card);
+            });
+
+            container.appendChild(archiveSection);
+        }
     }
 
     function createJobCard(job) {
         const card = document.createElement('div');
-        card.className = `job-card ${job.active ? 'is-active' : ''}`;
+        const isArchived = !!job.archived;
+        card.className = `job-card ${job.active ? 'is-active' : ''} ${isArchived ? 'is-archived' : ''}`;
         
         // Compter les candidats pour ce job
         const jobCandidates = _allCandidates.filter(c => c.job_id === job.id);
         const pendingCount = jobCandidates.filter(c => ['pending', 'processing'].includes(c.status)).length;
         const doneCount = jobCandidates.filter(c => c.status === 'completed').length;
+
+        // Bouton Archiver/Désarchiver
+        const archiveBtn = isArchived
+            ? `<button class="btn-archive-job" data-job-id="${job.id}" title="Désarchiver">📤</button>`
+            : `<button class="btn-archive-job" data-job-id="${job.id}" title="Archiver">📥</button>`;
 
         card.innerHTML = `
             <div class="job-card-top">
@@ -1005,7 +1049,10 @@
                     ? `<span class="active-label">✓ Recherche active</span>`
                     : `<button class="btn-activate-card" data-job-id="${job.id}">Activer cette recherche</button>`
                 }
-                <button class="btn-delete-job" data-job-id="${job.id}" title="Supprimer">🗑️</button>
+                <div class="job-actions-right">
+                    ${archiveBtn}
+                    <button class="btn-delete-job" data-job-id="${job.id}" title="Supprimer">🗑️</button>
+                </div>
             </div>
         `;
         
@@ -1031,7 +1078,32 @@
             }
         });
 
+        // Interaction: Archiver/Désarchiver
+        card.querySelector('.btn-archive-job').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await toggleArchiveJob(job.id);
+        });
+
         return card;
+    }
+
+    /**
+     * Toggle l'état d'archivage d'un job
+     */
+    async function toggleArchiveJob(jobId) {
+        const jobs = _allJobs.map(j => {
+            if (j.id === jobId) {
+                // Si on archive un job actif, il ne doit plus être actif
+                const willBeArchived = !j.archived;
+                return {
+                    ...j,
+                    archived: willBeArchived,
+                    active: willBeArchived ? false : j.active
+                };
+            }
+            return j;
+        });
+        await chrome.storage.local.set({ pawz_jobs: jobs });
     }
 
     // --- RENDER CANDIDATES IN JOB DETAIL (MINI LIST) ---
@@ -1457,9 +1529,15 @@
         if (countPending) countPending.textContent = allPending;
         if (countDone) countDone.textContent = allDone;
         
+        // Exclure les candidats des jobs archivés par défaut (sauf si filtre job explicite)
+        const archivedJobIds = _allJobs.filter(j => j.archived).map(j => j.id);
+        const baseCandidates = _filterJobId 
+            ? _allCandidates  // Si filtre job actif, on montre tous les candidats du job (même archivé)
+            : _allCandidates.filter(c => !archivedJobIds.includes(c.job_id));
+        
         // Apply Filters
         const hasFilters = _filterText || _filterScore80 || _filterJobId || _filterModel || _filterTuning;
-        const candidates = hasFilters ? applyFilters(_allCandidates) : _allCandidates;
+        const candidates = hasFilters ? applyFilters(baseCandidates) : baseCandidates;
         
         // Show filter info
         if (filterInfo) {

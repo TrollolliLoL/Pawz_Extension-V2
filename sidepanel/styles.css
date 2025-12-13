@@ -2291,3 +2291,87 @@ body {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
+/* --- ARCHIVES ACCORDION --- */
+.archives-accordion {
+  margin-top: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.archives-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f3f4f6;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  transition: background 0.2s;
+}
+
+.archives-header:hover {
+  background: #e5e7eb;
+}
+
+.archives-chevron {
+  font-size: 10px;
+  transition: transform 0.2s;
+  color: #9ca3af;
+}
+
+.archives-chevron.open {
+  transform: rotate(180deg);
+}
+
+.archives-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.archives-content.hidden {
+  display: none;
+}
+
+/* Job Card Archived Style */
+.job-card.is-archived {
+  opacity: 0.75;
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.job-card.is-archived:hover {
+  opacity: 0.9;
+}
+
+.job-card.is-archived .job-title {
+  color: #6b7280;
+}
+
+/* Job Actions Right Container */
+.job-actions-right {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Archive Button */
+.btn-archive-job {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+  padding: 4px;
+  transition: opacity 0.2s;
+}
+
+.btn-archive-job:hover {
+  opacity: 1;
+}
