@@ -2535,3 +2535,98 @@ body {
   background: #f8fafc;
   border-radius: 0 4px 4px 0;
 }
+
+/* ===================================
+   MULTI-SELECTION
+   =================================== */
+
+/* Avatar cliquable */
+.candidate-card .avatar {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.candidate-card .avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+}
+
+/* Avatar sélectionné (checked) */
+.candidate-card .avatar.checked {
+  background: var(--color-green);
+  color: white;
+  font-weight: 700;
+}
+
+/* Carte multi-sélectionnée */
+.candidate-card.multi-selected {
+  border-left: 4px solid var(--color-green);
+  background: #ecfdf5;
+}
+
+/* Barre d'actions multi-sélection */
+.multi-action-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-primary);
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.multi-action-bar.hidden {
+  display: none;
+}
+
+.multi-action-bar .multi-count {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.multi-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.multi-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.multi-btn.validate {
+  background: var(--color-green);
+}
+
+.multi-btn.reject {
+  background: #ef4444;
+}
+
+.multi-btn.delete {
+  background: #6b7280;
+}
+
+.multi-btn.cancel {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.multi-btn:hover {
+  transform: scale(1.1);
+  opacity: 0.9;
+}

@@ -39,6 +39,9 @@
     let _showRejected = false; // Toggle pour voir les candidats rejetés
     let _showArchivedCandidates = false; // Toggle pour voir les candidats des jobs archivés
     
+    // Multi-selection State
+    let _multiSelectedIds = new Set(); // IDs des candidats sélectionnés pour action groupée
+    
     // Form Data
     let _mustCriteria = [];
     let _niceCriteria = [];
@@ -1493,6 +1496,12 @@
             _showArchivedCandidates = e.target.checked;
             renderCandidatesList();
         });
+        
+        // Multi-selection action bar buttons
+        document.getElementById('multi-btn-validate')?.addEventListener('click', multiSelectValidate);
+        document.getElementById('multi-btn-reject')?.addEventListener('click', multiSelectReject);
+        document.getElementById('multi-btn-delete')?.addEventListener('click', multiSelectDelete);
+        document.getElementById('multi-btn-cancel')?.addEventListener('click', clearMultiSelection);
     }
     
     function updateJobFilterDropdown() {
@@ -1671,8 +1680,10 @@
         const decision = c.decision || null;
         const isSelected = decision === 'selected';
         const isRejected = decision === 'rejected';
+        const isMultiSelected = _multiSelectedIds.has(c.id);
         
-        card.className = `candidate-card status-${c.status} ${isSelected ? 'decision-selected' : ''} ${isRejected ? 'decision-rejected' : ''}`;
+        card.className = `candidate-card status-${c.status} ${isSelected ? 'decision-selected' : ''} ${isRejected ? 'decision-rejected' : ''} ${isMultiSelected ? 'multi-selected' : ''}`;
+        card.dataset.id = c.id;
         
         const name = c.candidate_name || 'Candidat';
         const job = _allJobs.find(j => j.id === c.job_id);
@@ -1683,7 +1694,11 @@
         const shortVerdict = fullVerdict.split(' - ')[0].trim();
 
         card.innerHTML = `
-            <div class="card-left"><div class="avatar">${name.slice(0,2).toUpperCase()}</div></div>
+            <div class="card-left">
+                <div class="avatar ${isMultiSelected ? 'checked' : ''}" data-id="${c.id}">
+                    ${isMultiSelected ? '✓' : name.slice(0,2).toUpperCase()}
+                </div>
+            </div>
             <div class="card-center">
                 <div class="name">${name}${isSelected ? ' <span class="selected-badge">★</span>' : ''}</div>
                 <div class="job-subtitle">${jobTitle}</div>
@@ -1698,10 +1713,15 @@
             </div>
         `;
         
-        // Click -> Open Detail
+        // Click sur avatar -> Toggle multi-sélection
+        card.querySelector('.avatar').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMultiSelect(c.id);
+        });
+        
+        // Click -> Open Detail (sauf si clic sur bouton ou avatar)
         card.addEventListener('click', (e) => {
-            // Ne pas ouvrir si clic sur un bouton
-            if (e.target.closest('.decision-btn') || e.target.closest('.delete')) return;
+            if (e.target.closest('.decision-btn') || e.target.closest('.delete') || e.target.closest('.avatar')) return;
             openCandidateDetail(c.id);
         });
 
@@ -1745,6 +1765,105 @@
             return c;
         });
         await chrome.storage.local.set({ pawz_candidates: candidates });
+    }
+
+    // ===================================
+    // MULTI-SELECTION
+    // ===================================
+    
+    /**
+     * Toggle la sélection multiple d'un candidat
+     */
+    function toggleMultiSelect(candidateId) {
+        if (_multiSelectedIds.has(candidateId)) {
+            _multiSelectedIds.delete(candidateId);
+        } else {
+            _multiSelectedIds.add(candidateId);
+        }
+        updateMultiSelectUI();
+    }
+    
+    /**
+     * Met à jour l'UI de la multi-sélection (cartes + barre d'actions)
+     */
+    function updateMultiSelectUI() {
+        // Mettre à jour les cartes
+        document.querySelectorAll('.candidate-card').forEach(card => {
+            const id = card.dataset.id;
+            const avatar = card.querySelector('.avatar');
+            const isSelected = _multiSelectedIds.has(id);
+            
+            card.classList.toggle('multi-selected', isSelected);
+            if (avatar) {
+                avatar.classList.toggle('checked', isSelected);
+                const candidate = _allCandidates.find(c => c.id === id);
+                const name = candidate?.candidate_name || 'CA';
+                avatar.textContent = isSelected ? '✓' : name.slice(0,2).toUpperCase();
+            }
+        });
+        
+        // Afficher/masquer la barre d'actions
+        const actionBar = document.getElementById('multi-action-bar');
+        if (actionBar) {
+            const count = _multiSelectedIds.size;
+            actionBar.classList.toggle('hidden', count === 0);
+            const countSpan = actionBar.querySelector('.multi-count');
+            if (countSpan) countSpan.textContent = count;
+        }
+    }
+    
+    /**
+     * Désélectionne tout
+     */
+    function clearMultiSelection() {
+        _multiSelectedIds.clear();
+        updateMultiSelectUI();
+    }
+    
+    /**
+     * Action groupée : Valider tous les sélectionnés
+     */
+    async function multiSelectValidate() {
+        if (_multiSelectedIds.size === 0) return;
+        
+        const candidates = _allCandidates.map(c => {
+            if (_multiSelectedIds.has(c.id)) {
+                return { ...c, decision: 'selected' };
+            }
+            return c;
+        });
+        await chrome.storage.local.set({ pawz_candidates: candidates });
+        clearMultiSelection();
+    }
+    
+    /**
+     * Action groupée : Rejeter tous les sélectionnés
+     */
+    async function multiSelectReject() {
+        if (_multiSelectedIds.size === 0) return;
+        
+        const candidates = _allCandidates.map(c => {
+            if (_multiSelectedIds.has(c.id)) {
+                return { ...c, decision: 'rejected' };
+            }
+            return c;
+        });
+        await chrome.storage.local.set({ pawz_candidates: candidates });
+        clearMultiSelection();
+    }
+    
+    /**
+     * Action groupée : Supprimer tous les sélectionnés
+     */
+    async function multiSelectDelete() {
+        if (_multiSelectedIds.size === 0) return;
+        
+        const count = _multiSelectedIds.size;
+        if (!confirm(`Supprimer ${count} candidat(s) ?`)) return;
+        
+        const candidates = _allCandidates.filter(c => !_multiSelectedIds.has(c.id));
+        await chrome.storage.local.set({ pawz_candidates: candidates });
+        clearMultiSelection();
     }
 
     /**
