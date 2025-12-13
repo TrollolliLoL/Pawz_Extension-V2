@@ -87,6 +87,9 @@
     document.addEventListener('DOMContentLoaded', async () => {
         console.log('[Pawz:Sidepanel] Init...');
         
+        // Charger le thème en premier (évite flash blanc)
+        await loadTheme();
+        
         // Démarrer le Keep Alive en premier
         setupKeepAlive();
         
@@ -100,10 +103,41 @@
         setupNavigationShortcuts();
         setupTuningListeners();
         setupSearchFiltersListeners();
+        setupThemeToggle();
         await loadTuningSettings();
         
         console.log('[Pawz:Sidepanel] Ready');
     });
+    
+    // ===================================
+    // THEME (Dark Mode)
+    // ===================================
+    
+    async function loadTheme() {
+        const data = await chrome.storage.local.get('pawz_theme');
+        const theme = data.pawz_theme || 'light';
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+            updateThemeIcon(true);
+        }
+    }
+    
+    function setupThemeToggle() {
+        const btn = document.getElementById('btn-theme-toggle');
+        btn?.addEventListener('click', async () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            updateThemeIcon(isDark);
+            await chrome.storage.local.set({ pawz_theme: isDark ? 'dark' : 'light' });
+        });
+    }
+    
+    function updateThemeIcon(isDark) {
+        const btn = document.getElementById('btn-theme-toggle');
+        if (btn) {
+            btn.textContent = isDark ? '☀️' : '🌙';
+            btn.title = isDark ? 'Mode clair' : 'Mode sombre';
+        }
+    }
 
     // ===================================
     // AI TUNING LOGIC (Réglage IA)
