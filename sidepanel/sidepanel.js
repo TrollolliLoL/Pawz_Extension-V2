@@ -7,6 +7,18 @@
     'use strict';
 
     // ===================================
+    // UTILS
+    // ===================================
+    
+    /**
+     * Normalise un texte en supprimant les accents, trémas et chapeaux.
+     * Ex: "Rémi" -> "remi", "François" -> "francois"
+     */
+    function normalizeText(str) {
+        return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    // ===================================
     // STATE
     // ===================================
     let _activeJobId = null;
@@ -1538,19 +1550,20 @@
     function applyFilters(candidates) {
         let filtered = [...candidates];
         
-        // 1. Text Search (Nom, Titre, Job, URL)
+        // 1. Text Search (Nom, Titre, Job, URL) - Insensible aux accents
         if (_filterText) {
+            const searchNormalized = normalizeText(_filterText);
             filtered = filtered.filter(c => {
-                const name = (c.candidate_name || '').toLowerCase();
-                const title = (c.candidate_title || c.analysis?.candidate_title || '').toLowerCase();
-                const url = (c.source_url || '').toLowerCase();
+                const name = normalizeText(c.candidate_name);
+                const title = normalizeText(c.candidate_title || c.analysis?.candidate_title);
+                const url = normalizeText(c.source_url);
                 const job = _allJobs.find(j => j.id === c.job_id);
-                const jobTitle = (job?.title || '').toLowerCase();
+                const jobTitle = normalizeText(job?.title);
                 
-                return name.includes(_filterText) || 
-                       title.includes(_filterText) || 
-                       url.includes(_filterText) ||
-                       jobTitle.includes(_filterText);
+                return name.includes(searchNormalized) || 
+                       title.includes(searchNormalized) || 
+                       url.includes(searchNormalized) ||
+                       jobTitle.includes(searchNormalized);
             });
         }
         
