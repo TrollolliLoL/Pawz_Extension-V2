@@ -658,6 +658,19 @@
                     _settingsOpen = false;
                 }
                 
+                // Activer les toggles "Voir rejetés" et "Voir archivés"
+                const toggleRejected = document.getElementById('toggle-show-rejected');
+                const toggleArchived = document.getElementById('toggle-show-archived');
+                
+                if (toggleRejected && !toggleRejected.checked) {
+                    toggleRejected.checked = true;
+                    _showRejected = true;
+                }
+                if (toggleArchived && !toggleArchived.checked) {
+                    toggleArchived.checked = true;
+                    _showArchivedCandidates = true;
+                }
+                
                 // Switch to Analysis tab and set exact URL filter
                 document.getElementById('tab-analysis')?.click();
                 const searchInput = document.getElementById('search-candidates');
