@@ -37,6 +37,13 @@ export async function processQueue() {
     isProcessing = true;
 
     try {
+        // 0. Vérifier le Kill Switch
+        const appStatus = await chrome.storage.local.get('pawz_app_status');
+        if (appStatus.pawz_app_status && !appStatus.pawz_app_status.active) {
+            console.warn('[Pawz:Queue] ⚠️ Kill Switch activé - Analyses bloquées');
+            return;
+        }
+        
         // 1. Récupérer l'état actuel
         const data = await chrome.storage.local.get(['pawz_candidates', 'pawz_jobs']);
         const candidates = data.pawz_candidates || [];

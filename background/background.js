@@ -8,7 +8,7 @@
  */
 
 import { db } from '../lib/db.js';
-import { generateUUID } from '../lib/utils.js';
+import { generateUUID, checkKillSwitch } from '../lib/utils.js';
 import { GeminiClient } from '../lib/gemini.js';
 import { 
     processQueue, 
@@ -47,6 +47,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
     // Configurer le Watchdog
     setupWatchdog();
+    
+    // Vérifier le Kill Switch au démarrage
+    await checkAndStoreKillSwitch();
 });
 
 // Au démarrage du Worker (réveil)
@@ -56,6 +59,8 @@ chrome.runtime.onStartup.addListener(async () => {
     try {
         await db.init();
         setupWatchdog();
+        // Vérifier le Kill Switch
+        await checkAndStoreKillSwitch();
         // Vérifier s'il y a des items en attente
         await processQueue();
     } catch (error) {
@@ -499,6 +504,24 @@ chrome.alarms.onAlarm.addListener(handleAlarm);
 // ============================================================================
 // STORAGE INIT & MIGRATION
 // ============================================================================
+
+/**
+ * Vérifie le Kill Switch et stocke le résultat.
+ */
+async function checkAndStoreKillSwitch() {
+    console.log('[Pawz:Background] Vérification Kill Switch...');
+    const status = await checkKillSwitch();
+    console.log('[Pawz:Background] Statut reçu:', status);
+    
+    await chrome.storage.local.set({ pawz_app_status: status });
+    console.log('[Pawz:Background] Statut stocké dans chrome.storage.local');
+    
+    if (!status.active) {
+        console.warn('[Pawz:Background] ⚠️ Kill Switch activé:', status.message);
+    } else {
+        console.log('[Pawz:Background] ✅ Application active');
+    }
+}
 
 async function initDefaultStorage() {
     const defaults = {

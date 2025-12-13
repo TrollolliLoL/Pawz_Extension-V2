@@ -93,6 +93,9 @@
         // Démarrer le Keep Alive en premier
         setupKeepAlive();
         
+        // Vérifier le Kill Switch
+        await checkAppStatus();
+        
         await loadSettings();
         await refreshData();
 
@@ -2513,6 +2516,55 @@
             feedbackEl.textContent = message;
             feedbackEl.className = `api-key-feedback ${type}`;
             feedbackEl.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Vérifie le statut de l'application (Kill Switch).
+     */
+    async function checkAppStatus() {
+        const data = await chrome.storage.local.get('pawz_app_status');
+        const status = data.pawz_app_status;
+        
+        if (status && !status.active) {
+            // Afficher un message d'alerte en haut du sidepanel
+            showKillSwitchBanner(status.message);
+        }
+    }
+
+    /**
+     * Affiche une bannière d'alerte Kill Switch.
+     */
+    function showKillSwitchBanner(message) {
+        const banner = document.createElement('div');
+        banner.id = 'kill-switch-banner';
+        banner.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        banner.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span style="font-size: 20px;">⚠️</span>
+                <span>${message || 'L\'application est temporairement désactivée.'}</span>
+            </div>
+        `;
+        
+        document.body.insertBefore(banner, document.body.firstChild);
+        
+        // Décaler le contenu
+        const mainContent = document.querySelector('.w-main');
+        if (mainContent) {
+            mainContent.style.marginTop = '60px';
         }
     }
 
