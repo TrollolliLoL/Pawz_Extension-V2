@@ -24,6 +24,7 @@
     let _filterModel = '';
     let _filterTuning = '';
     let _showRejected = false; // Toggle pour voir les candidats rejetés
+    let _showArchivedCandidates = false; // Toggle pour voir les candidats des jobs archivés
     
     // Form Data
     let _mustCriteria = [];
@@ -1439,6 +1440,13 @@
             _showRejected = e.target.checked;
             renderCandidatesList();
         });
+        
+        // Toggle Show Archived Candidates
+        const toggleArchived = document.getElementById('toggle-show-archived');
+        toggleArchived?.addEventListener('change', (e) => {
+            _showArchivedCandidates = e.target.checked;
+            renderCandidatesList();
+        });
     }
     
     function updateJobFilterDropdown() {
@@ -1560,9 +1568,9 @@
         if (countDone) countDone.textContent = allDone;
         if (countSelected) countSelected.textContent = allSelected;
         
-        // Exclure les candidats des jobs archivés par défaut (sauf si filtre job explicite)
+        // Exclure les candidats des jobs archivés par défaut (sauf si toggle ou filtre job explicite)
         const archivedJobIds = _allJobs.filter(j => j.archived).map(j => j.id);
-        let baseCandidates = _filterJobId 
+        let baseCandidates = (_filterJobId || _showArchivedCandidates)
             ? _allCandidates
             : _allCandidates.filter(c => !archivedJobIds.includes(c.job_id));
         
