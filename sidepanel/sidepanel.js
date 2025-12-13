@@ -1722,6 +1722,44 @@
     }
 
     /**
+     * Recherche toutes les analyses pour un candidat donné (par nom)
+     * Ferme l'overlay, active les toggles, et lance la recherche
+     */
+    function searchAllAnalysesForCandidate(candidateName) {
+        // 1. Fermer l'overlay de détail
+        const detailOverlay = document.getElementById('detail-overlay');
+        if (detailOverlay) {
+            detailOverlay.classList.remove('visible');
+            detailOverlay.classList.add('hidden');
+        }
+        
+        // 2. Activer les toggles "Voir rejetés" et "Voir archivés"
+        const toggleRejected = document.getElementById('toggle-show-rejected');
+        const toggleArchived = document.getElementById('toggle-show-archived');
+        
+        if (toggleRejected && !toggleRejected.checked) {
+            toggleRejected.checked = true;
+            _showRejected = true;
+        }
+        if (toggleArchived && !toggleArchived.checked) {
+            toggleArchived.checked = true;
+            _showArchivedCandidates = true;
+        }
+        
+        // 3. Aller dans l'onglet Analyse
+        document.getElementById('tab-analysis')?.click();
+        
+        // 4. Mettre le nom dans la recherche
+        const searchInput = document.getElementById('search-candidates');
+        if (searchInput) {
+            searchInput.value = candidateName;
+            _filterText = candidateName.toLowerCase();
+            document.getElementById('btn-clear-search')?.classList.remove('hidden');
+            renderCandidatesList();
+        }
+    }
+
+    /**
      * Ouvre l'overlay de détail candidat (V1 Style)
      */
     function openCandidateDetail(candidateId) {
@@ -1751,9 +1789,17 @@
         const initials = name.slice(0, 2).toUpperCase();
 
         // 2. Populate Header
-        document.getElementById('detail-candidate-name').textContent = name;
+        const nameEl = document.getElementById('detail-candidate-name');
+        nameEl.textContent = name;
         document.getElementById('detail-candidate-title').textContent = currentJob;
         document.getElementById('detail-initials').textContent = initials;
+        
+        // 2a. Clic sur le nom -> rechercher toutes les analyses de ce candidat
+        const newNameEl = nameEl.cloneNode(true);
+        nameEl.parentNode.replaceChild(newNameEl, nameEl);
+        newNameEl.addEventListener('click', () => {
+            searchAllAnalysesForCandidate(name);
+        });
         
         // 2b. Decision Buttons State
         const decision = candidate.decision || null;

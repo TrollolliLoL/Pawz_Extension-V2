@@ -2512,3 +2512,14 @@ body {
   height: 32px;
   font-size: 16px;
 }
+
+/* Clickable candidate name in detail overlay */
+.clickable-name {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.clickable-name:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
