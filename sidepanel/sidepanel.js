@@ -20,6 +20,7 @@
     // Filter State (Onglet Analyse)
     let _filterText = '';
     let _filterScore80 = false;
+    let _filterSelected = false;
     let _filterJobId = '';
     let _filterModel = '';
     let _filterTuning = '';
@@ -1404,13 +1405,16 @@
             renderCandidatesList();
         });
         
-        // Filter Pills (Score > 80)
+        // Filter Pills (Score > 80, Selected)
         filterPills.forEach(pill => {
             pill.addEventListener('click', () => {
                 const filter = pill.dataset.filter;
                 if (filter === 'score80') {
                     _filterScore80 = !_filterScore80;
                     pill.classList.toggle('active', _filterScore80);
+                } else if (filter === 'selected') {
+                    _filterSelected = !_filterSelected;
+                    pill.classList.toggle('active', _filterSelected);
                 }
                 renderCandidatesList();
             });
@@ -1525,6 +1529,11 @@
             filtered = filtered.filter(c => (c.score || 0) >= 80);
         }
         
+        // 2b. Selected Filter
+        if (_filterSelected) {
+            filtered = filtered.filter(c => c.decision === 'selected');
+        }
+        
         // 3. Job Filter
         if (_filterJobId) {
             filtered = filtered.filter(c => c.job_id === _filterJobId);
@@ -1580,7 +1589,7 @@
         }
         
         // Apply Filters
-        const hasFilters = _filterText || _filterScore80 || _filterJobId || _filterModel || _filterTuning;
+        const hasFilters = _filterText || _filterScore80 || _filterSelected || _filterJobId || _filterModel || _filterTuning;
         const candidates = hasFilters ? applyFilters(baseCandidates) : baseCandidates;
         
         // Show filter info
